@@ -1,0 +1,16 @@
+# secret folder
+secret
+
+# .idea folder
+.idea
+
+# node_modules folder
+node_modules
+
+# build folder
+build
+
+# package-lock.json file
+package-lock.json
+
+
