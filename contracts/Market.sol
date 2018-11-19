@@ -4,7 +4,7 @@ import "../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./NGT.sol";
 
-contract MarketManager is Ownable{
+contract Market is Ownable{
 
     // Variables
 
@@ -16,6 +16,12 @@ contract MarketManager is Ownable{
 
     // Player address, i.e. the element playing the market with the DSO
     address public player;
+
+    // Starting time of the market (timestamp)
+    uint public startTime;
+
+    // Ending time of the market (timestamp)
+    uint public endTime;
 
     // State of the market
     enum MarketState {
@@ -79,23 +85,38 @@ contract MarketManager is Ownable{
     // Functions
 
     // Constructor
-    constructor(address _dso, address _player) public {
+    constructor(address _dso,
+                address _player,
+                uint _startTime,
+                uint _endTime,
+                address _referee,
+                uint _maxLow,
+                uint _maxUp,
+                uint _revFactor,
+                uint _penFactor,
+                uint _stakedNGTs,
+                uint _playerNGTs) public {
         owner = msg.sender;
 
         dso = _dso;
         player = _player;
+        startTime = _startTime;
+        endTime = _endTime;
 
         // Set the initial state
         marketData.state = MarketState.NotRunning;
         marketData.result = MarketResult.NotDecided;
+
+        // request to play the market
+        open(_referee, _maxLow, _maxUp, _revFactor, _penFactor, _stakedNGTs, _playerNGTs);
     }
 
     // *********************************************************
     // Negotiation functions:
 
-    // Request to play a market, performed by the DSO
-    function requestToPlay(address _referee, uint _maxLow, uint _maxUp, uint _revFactor, uint _penFactor,
-                           uint stakedNGTs) public {
+    // Open the market
+    function open(address _referee, uint _maxLow, uint _maxUp, uint _revFactor, uint _penFactor,
+                  uint _stakedNGTs, uint _playerNGTs) private {
 
         // check if the dso is the sender
         require(msg.sender == dso);
@@ -109,21 +130,28 @@ contract MarketManager is Ownable{
         marketData.maxPowerUpper = _maxUp;
         marketData.revenueFactor = _revFactor;
         marketData.penaltyFactor = _penFactor;
+        marketData.dsoStaking = _stakedNGTs;
+        marketData.playerStaking = _playerNGTs;
         marketData.state = MarketState.WaitingConfirmToStart;
 
         // staking of the DSO tokens
         // ....
     }
 
-    // Confirm to want to play the market, performed by the player
-    function confirmToPlay(bool confirm, uint stakedNGTs) public {
+    // Confirm/not confirm to play the market, performed by the player
+    function confirmOpening(bool confirm, uint stakedNGTs) public {
 
         // check if the player is the sender
         require(msg.sender == player);
 
+        // check if the NGTs amount declared by dso to be staked by the player is correct
+        require(marketData.playerStaking == stakedNGTs);
+
         // check if the market is waiting for the player starting confirm
         require(marketData.state == MarketState.WaitingConfirmToStart);
 
+        // check if it is not too late to confirm
+        require(now <= startTime);
 
         marketData.state = MarketState.Running;
 
@@ -131,11 +159,27 @@ contract MarketManager is Ownable{
         // .....
     }
 
+    // Refund dso with the staked tokens (in case the market was not confirmed by the player)
+    function refundDso() public {
+
+        // check if the player is the dso
+        require(msg.sender == dso);
+
+        // check if the market is in the right state, i.e. waiting for the player starting confirm
+        require(marketData.state == MarketState.WaitingConfirmToStart);
+
+        // check if it is too late to confirm
+        require(now > startTime);
+
+        // refund the staked token, this market (dso-player-startTime-endTime) has not be played
+        // .....
+    }
+
     // *********************************************************
     // Market solving functions:
 
     // Send maximum measured power, requesting to end the market
-    function sendPowerPeak(uint _powerPeak) public {
+    function settle(uint _powerPeak) public {
 
         // check if the dso is the sender
         require(msg.sender == dso);
@@ -148,7 +192,7 @@ contract MarketManager is Ownable{
     }
 
     // Confirm the maximum power measured, performed by the player
-    function confirmPowerPeak(uint _powerPeak) public {
+    function confirmSettlement(uint _powerPeak) public {
 
         // check if the player is the sender
         require(msg.sender == player);
@@ -177,7 +221,7 @@ contract MarketManager is Ownable{
         require(msg.sender == marketData.referee);
         require(marketData.state == MarketState.WaitingForTheJudge);
 
-        // Referee decides
+        // Referee judges
         // ....
 
         // Close definitely the market
