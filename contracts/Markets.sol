@@ -19,12 +19,14 @@ contract Markets is Ownable{
                         WaitingConfirmToEnd,    // Waiting for player confirm to end the market and assign the tokens
                         WaitingForTheReferee,   // Waiting for the referee decision
                         Closed,                 // Market closed
-                        ClosedAfterJudgement    // Market closed after referee judgement
+                        ClosedAfterJudgement,   // Market closed after referee judgement
+                        ClosedNotPlayed         // Market closed because not played by the player
                      }
 
     // Result of the market
     enum MarketResult {
                         NotDecided,         // The market is not ended
+                        NotPlayed,          // The market is not played by the player
                         Prize,              // The player takes all the NGTs staked by the DSO
                         Revenue,            // The player takes a part of the NGTs staked by the DSO
                         Penalty,            // The DSO takes a part of the NGTs staked by the player
@@ -80,7 +82,6 @@ contract Markets is Ownable{
         // Result of the market
         MarketResult result;
     }
-    MarketData public marketData;
 
     // NGT token
     NGT public ngt;
@@ -169,10 +170,10 @@ contract Markets is Ownable{
         require(msg.sender == player);
 
         // check if the NGTs amount declared by dso to be staked by the player is correct
-        require(marketData.playerStaking == _stakedNGTs);
+        require(marketsData[_startTime].playerStaking == _stakedNGTs);
 
         // check if the market is waiting for the player starting confirm
-        require(marketData.state == MarketState.WaitingConfirmToStart);
+        require(marketsData[_startTime].state == MarketState.WaitingConfirmToStart);
 
         // check if it is not too late to confirm
         require(now <= _startTime);
@@ -181,11 +182,33 @@ contract Markets is Ownable{
         require(_stakedNGTs <= ngt.allowance(player, address(this)));
 
         // The market is allowed to start
-        marketData.state = MarketState.Running;
+        marketsData[_startTime].state = MarketState.Running;
 
         // Player staking: allowed tokens are transferred from player wallet to this smart contract
         ngt.transferFrom(player, address(this), marketsData[_startTime].playerStaking);
     }
+
+    // refund requested by the DSO (i.e. the player has not confirmed the market opening)
+    function refund(uint _startTime) public {
+        // Only the DSO is allowed to request a refund
+        require(msg.sender == dso);
+
+        // The market has to be in WaitingConfirmToStart state
+        require(marketsData[_startTime].state == MarketState.WaitingConfirmToStart);
+
+        // Check the if the market startTime is in the past
+        require(_startTime < now);
+
+        // Refund the DSO staking
+        ngt.transfer(dso, marketsData[_startTime].dsoStaking);
+
+        // Set the market result
+        marketsData[_startTime].result = MarketResult.NotPlayed;
+
+        // Set the market state
+        marketsData[_startTime].state = MarketState.ClosedNotPlayed;
+    }
+
 
     // *********************************************************
     // Market solving functions:
@@ -213,7 +236,7 @@ contract Markets is Ownable{
         require(msg.sender == player);
 
         // check if the market is waiting for the player ending confirm
-        require(marketData.state == MarketState.WaitingConfirmToEnd);
+        require(marketsData[_startTime].state == MarketState.WaitingConfirmToEnd);
 
         marketsData[_startTime].powerPeakDeclaredByPlayer = _powerPeak;
 
@@ -308,7 +331,7 @@ contract Markets is Ownable{
     function performRefereeDecision(uint _startTime, uint _powerPeak) public {
 
         // the sender has to be the referee
-        require(msg.sender == marketData.referee);
+        require(msg.sender == marketsData[_startTime].referee);
 
         // the market is waiting for the referee decision
         require(marketsData[_startTime].state == MarketState.WaitingForTheReferee);
