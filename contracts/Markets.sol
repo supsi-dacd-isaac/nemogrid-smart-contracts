@@ -4,9 +4,8 @@ import "../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import "./NGT.sol";
-import "./Market.sol";
 
-contract MarketsHistory is Ownable{
+contract Markets is Ownable{
 
     using SafeMath for uint;
 
@@ -25,13 +24,14 @@ contract MarketsHistory is Ownable{
 
     // Result of the market
     enum MarketResult {
-                        NotDecided,     // The market is not ended
-                        Winning,        // The player takes all the NGTs staked by the DSO
-                        Revenue,        // The player takes a part of the NGTs staked by the DSO
-                        Penalty,        // The DSO takes a part of the NGTs staked by the player
-                        AllToDSO,       // The referee assigns the NGT staked by the player to the DSO
-                        AllToPlayer,    // The referee assigns the NGT staked by the DSO to the player
-                        Cheaters        // The referee decides that both DSO and the player will be refunded
+                        NotDecided,         // The market is not ended
+                        Prize,              // The player takes all the NGTs staked by the DSO
+                        Revenue,            // The player takes a part of the NGTs staked by the DSO
+                        Penalty,            // The DSO takes a part of the NGTs staked by the player
+                        Crash,              // The DSO takes all the NGTs staked by the player
+                        DSOCheating,        // The referee assigns the NGT staked by the player to the DSO
+                        PlayerCheating,     // The referee assigns the NGT staked by the DSO to the player
+                        Cheaters            // The referee decides that both DSO and the player will be refunded
                       }
 
     // Struct data
@@ -96,10 +96,9 @@ contract MarketsHistory is Ownable{
     // Player related to the history
     address public player;
 
-    // Markets data mapping (startTime => data)
+    // Markets data and existence flag mappings
+    // The markets are indexed considering the month first day
     mapping (uint => MarketData) marketsData;
-
-    // Markets existence flag (startTime => bool)
     mapping (uint => bool) marketsFlag;
 
     // Functions
@@ -121,12 +120,14 @@ contract MarketsHistory is Ownable{
         // Only the DSO is allowed to create a market
         require(msg.sender == dso);
 
-        // The market does not exist
+        // The market does not already exist
         require(marketsFlag[_startTime] == false);
 
         // check the times
-        require(_startTime > now);
-        require(_endTime > _startTime);
+        require(now < _startTime);
+        require(_startTime < _endTime);
+
+        // todo: add a checking on _startTime/_endTime in order to be sure they are the first and last days of a month
 
         // check the referee
         require(_referee != address(0));
@@ -136,10 +137,12 @@ contract MarketsHistory is Ownable{
         // check the maximum limits
         require(_maxLow < _maxUp);
 
-        // check it the dso tokens allowance for this contract is enough to start the market
+        // todo: add checking on revenue/penalty factors
+
+        // check the dso tokens allowance
         require(_stakedNGTs <= ngt.allowance(dso, address(this)));
 
-        // Save the market data in the mapping (the markets are indexed considering the month first day)
+        // The market can try to start: its data are saved in the mapping
         marketsData[_startTime].state = MarketState.NotRunning;
         marketsData[_startTime].result = MarketResult.NotDecided;
         marketsData[_startTime].endTime = _endTime;
@@ -174,7 +177,7 @@ contract MarketsHistory is Ownable{
         // check if it is not too late to confirm
         require(now <= _startTime);
 
-        // check it the player tokens allowance for this contract is enough to start the market
+        // check the player tokens allowance
         require(_stakedNGTs <= ngt.allowance(player, address(this)));
 
         // The market is allowed to start
@@ -217,26 +220,88 @@ contract MarketsHistory is Ownable{
         // check if the two peak declarations (DSO and player) are equal
         if(marketsData[_startTime].powerPeakDeclaredByDso == marketsData[_startTime].powerPeakDeclaredByPlayer) {
 
-            // Finish the market sending properly the token to DSO and player
-
-            // Define the values to send back according to the power peak
-            uint tokensForDso = 0;
-            uint tokensForPlayer = 0;
-
-            marketsData[_startTime].tknReleasedToDso = tokensForDso;
-            marketsData[_startTime].tknReleasedToPlayer = tokensForPlayer;
-
-            // Send back the tokens to dso and player
-            ngt.transfer(dso, marketsData[_startTime].tknReleasedToDso);
-            ngt.transfer(player, marketsData[_startTime].tknReleasedToPlayer);
-
-            // Close the market
-            marketsData[_startTime].state = MarketState.Closed;
+            // Finish the market sending the tokens to DSO and player according to the measured peak
+            _decideMarket(_startTime);
         }
         else {
             // The referee decision is requested
             marketsData[_startTime].state = MarketState.WaitingForTheReferee;
         }
+    }
+
+    // The referees takes a decision to close the market
+    function _decideMarket(uint idx) private {
+        uint peak = marketsData[idx].powerPeakDeclaredByDso;
+        uint tokensForDso;
+        uint tokensForPlayer;
+        uint peakDiff;
+
+        // measured peak < lowerMax => PRIZE: the player takes all the DSO staking
+        if(peak < marketsData[idx].maxPowerLower) {
+            tokensForDso = 0;
+            tokensForPlayer = marketsData[idx].dsoStaking.add(marketsData[idx].playerStaking);
+
+            // Set the market result as a player prize
+            marketsData[idx].result = MarketResult.Prize;
+        }
+        // lowerMax <= measured peak <= upperMax => REVENUE: the player takes a part of the DSO staking
+        else if(peak >= marketsData[idx].maxPowerLower && peak <= marketsData[idx].maxPowerUpper) {
+            // Calculate the revenue amount
+            peakDiff = peak.sub(marketsData[idx].maxPowerLower);
+
+            tokensForDso = peakDiff.mul(marketsData[idx].revenueFactor);
+
+            tokensForPlayer = marketsData[idx].dsoStaking.sub(tokensForDso);
+
+            tokensForPlayer = tokensForPlayer.add(marketsData[idx].playerStaking);
+
+            // Set the market result as a player revenue
+            marketsData[idx].result = MarketResult.Revenue;
+        }
+        // measured peak > upperMax => PENALTY: the DSO takes a part of the revenue staking
+        else {
+            // Calculate the penalty amount
+            peakDiff = peak.sub(marketsData[idx].maxPowerUpper);
+
+            tokensForDso = peakDiff.mul(marketsData[idx].penaltyFactor);
+
+            // If the penalty tokens exceed the staking => the DSO takes it all
+            if(tokensForDso >= marketsData[idx].playerStaking) {
+                tokensForPlayer = 0;
+                tokensForDso = marketsData[idx].dsoStaking.add(marketsData[idx].playerStaking);
+
+                // Set the market result as a player penalty
+                marketsData[idx].result = MarketResult.Penalty;
+            }
+            else {
+                tokensForPlayer = marketsData[idx].playerStaking.sub(tokensForDso);
+                tokensForDso = tokensForDso.add(marketsData[idx].dsoStaking);
+
+                // Set the market result as a player penalty
+                marketsData[idx].result = MarketResult.Penalty;
+            }
+        }
+
+        _saveAndTransfer(idx, tokensForDso, tokensForPlayer);
+    }
+
+    function _saveAndTransfer(uint idx, uint _tokensForDso, uint _tokensForPlayer) private {
+        // save the amounts to send
+        marketsData[idx].tknReleasedToDso = _tokensForDso;
+        marketsData[idx].tknReleasedToPlayer = _tokensForPlayer;
+
+        // Send tokens to dso and player
+
+        if(marketsData[idx].result != MarketResult.Prize) {
+            ngt.transfer(dso, marketsData[idx].tknReleasedToDso);
+        }
+
+        if(marketsData[idx].result != MarketResult.Crash) {
+            ngt.transfer(player, marketsData[idx].tknReleasedToPlayer);
+        }
+
+        // Close the market
+        marketsData[idx].state = MarketState.Closed;
     }
 
     // The referees takes a decision to close the market
@@ -254,14 +319,14 @@ contract MarketsHistory is Ownable{
         // Check if the DSO declared a true peak
         if(marketsData[_startTime].powerPeakDeclaredByDso == _powerPeak)
         {
-            marketsData[_startTime].result = MarketResult.AllToDSO;
+            marketsData[_startTime].result = MarketResult.DSOCheating;
 
             ngt.transfer(dso, totalStaking);
         }
         // Check if the player declared a true peak
         else if(marketsData[_startTime].powerPeakDeclaredByPlayer == _powerPeak)
         {
-            marketsData[_startTime].result = MarketResult.AllToPlayer;
+            marketsData[_startTime].result = MarketResult.PlayerCheating;
 
             ngt.transfer(player, totalStaking);
         }
