@@ -351,7 +351,8 @@ contract Markets is Ownable{
         else {
             marketsData[_startTime].result = MarketResult.Cheaters;
 
-            ngt.transfer(address(0), totalStaking);
+            // Burn the tokens
+            ngt.burn(totalStaking);
         }
 
         // Close the market
