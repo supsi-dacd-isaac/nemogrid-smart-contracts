@@ -86,11 +86,6 @@ contract Markets is Ownable{
     // NGT token
     NGT public ngt;
 
-    // Variables
-
-    // Owner address
-    address public owner;
-
     // DSO related to the history
     address public dso;
 
@@ -106,7 +101,6 @@ contract Markets is Ownable{
 
     // Constructor
     constructor(address _dso, address _player, address _token) public {
-        owner = msg.sender;
         dso = _dso;
         player = _player;
         ngt = NGT(_token);
@@ -128,7 +122,7 @@ contract Markets is Ownable{
         require(now < _startTime);
         require(_startTime < _endTime);
 
-        // todo: add a checking on _startTime/_endTime in order to be sure they are the first and last days of a month
+        // todo: add a checking on _startTime/_endTime to be sure they are the first and last days of a month
 
         // check the referee
         require(_referee != address(0));

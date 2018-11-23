@@ -8,40 +8,34 @@ contract MarketsManager is Ownable{
 
     // Variables
 
-    // Owner address
-    address public owner;
-
-    // DSO address
-    address public dso;
-
     // token address
     address public token;
 
     // Markets mapping
-    mapping (address => Markets) markets;
-    mapping (address => bool) marketsFlag;
+    struct MarketList {
+        mapping (address => Markets) markets;
+        mapping (address => bool) exists;
+    }
+    mapping (address => MarketList) list;
 
     // Functions
 
     // Constructor
-    constructor(address _dso, address _token) public {
-
-        owner = msg.sender;
-        dso = _dso;
+    constructor(address _token) public {
         token = _token;
     }
 
-    // *********************************************************
-    // Negotiation functions:
+    // Add a markets set: a markets set is defined by the triple (dso, player, token)
+    function addMarketsSet(address _dso, address _player) onlyOwner public returns(address) {
 
-    // Add a markets set
-    function add(address _player) onlyOwner public returns(address) {
-        require(marketsFlag[_player] == false);
+        // Check if this markets set already exists
+        require(list[_dso].exists[_player] == false);
 
         // a set of markets is defined by the triple (dso, player, token)
-        markets[_player] = new Markets(dso, token, _player);
-        marketsFlag[_player] = true;
+        list[_dso].markets[_player] = new Markets(_dso, _player, token);
+        list[_dso].exists[_player] = true;
 
-        return address(markets[_player]);
+        // Return the address of the market set just created
+        return address(list[_dso].markets[_player]);
     }
 }
