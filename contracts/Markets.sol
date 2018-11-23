@@ -13,6 +13,7 @@ contract Markets is Ownable{
 
     // State of the market
     enum MarketState {
+                        None,
                         NotRunning,             // Market not running
                         WaitingConfirmToStart,  // Waiting for player confirm to start
                         Running,                // Market running
@@ -25,6 +26,7 @@ contract Markets is Ownable{
 
     // Result of the market
     enum MarketResult {
+                        None,
                         NotDecided,         // The market is not ended
                         NotPlayed,          // The market is not played by the player
                         Prize,              // The player takes all the NGTs staked by the DSO
@@ -112,7 +114,7 @@ contract Markets is Ownable{
     // open a market, defined by: dso, player, startTime, endTime
     function open(uint _startTime, uint _endTime, address _referee, uint _maxLow, uint _maxUp, uint _revFactor,
                   uint _penFactor, uint _stakedNGTs, uint _playerNGTs) public {
-        // Only the DSO is allowed to create a market
+        // Only the sender is allowed to create a market
         require(msg.sender == dso);
 
         // The market does not already exist
@@ -358,4 +360,16 @@ contract Markets is Ownable{
         // Close the market
         marketsData[_startTime].state = MarketState.ClosedAfterJudgement;
     }
+
+    // Getters
+    function getState(uint _idx) view public returns(MarketState)       { return marketsData[_idx].state; }
+    function getResult(uint _idx) view public returns(MarketResult)     { return marketsData[_idx].result; }
+    function getEndTime(uint _idx) view public returns(uint)            { return marketsData[_idx].endTime; }
+    function getReferee(uint _idx) view public returns(address)         { return marketsData[_idx].referee; }
+    function getLowerMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerLower; }
+    function getUpperMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerUpper; }
+    function getRevenueFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].revenueFactor; }
+    function getPenaltyFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].penaltyFactor; }
+    function getDsoStake(uint _idx) view public returns(uint)           { return marketsData[_idx].dsoStaking; }
+    function getPlayerStake(uint _idx) view public returns(uint)        { return marketsData[_idx].playerStaking; }
 }
