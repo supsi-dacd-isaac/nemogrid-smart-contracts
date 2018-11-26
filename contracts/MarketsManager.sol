@@ -12,11 +12,8 @@ contract MarketsManager is Ownable{
     address public token;
 
     // Markets mapping
-    struct MarketList {
-        mapping (address => Markets) markets;
-        mapping (address => bool) exists;
-    }
-    mapping (address => MarketList) list;
+    mapping (address => Markets) markets;
+    mapping (address => bool) exists;
 
     // Functions
 
@@ -26,16 +23,16 @@ contract MarketsManager is Ownable{
     }
 
     // Add a markets set: a markets set is defined by the triple (dso, player, token)
-    function addMarketsSet(address _dso, address _player) onlyOwner public returns(address) {
+    function addMarketsSet(address _dso) onlyOwner public returns(address) {
 
         // Check if this markets set already exists
-        require(list[_dso].exists[_player] == false);
+        require(exists[_dso] == false);
 
         // a set of markets is defined by the triple (dso, player, token)
-        list[_dso].markets[_player] = new Markets(_dso, _player, token);
-        list[_dso].exists[_player] = true;
+        markets[_dso] = new Markets(_dso, token);
+        exists[_dso] = true;
 
         // Return the address of the market set just created
-        return address(list[_dso].markets[_player]);
+        return address(markets[_dso]);
     }
 }
