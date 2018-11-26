@@ -207,7 +207,7 @@ contract Markets is Ownable{
         // The market has to be in WaitingConfirmToStart state
         require(marketsData[idx].state == MarketState.WaitingConfirmToStart);
 
-        // Check the if the market startTime is in the past
+        // Check if the market startTime is passed
         require(marketsData[idx].startTime < now);
 
         // Refund the DSO staking
@@ -389,8 +389,10 @@ contract Markets is Ownable{
     // Getters
     function getState(uint _idx) view public returns(MarketState)       { return marketsData[_idx].state; }
     function getResult(uint _idx) view public returns(MarketResult)     { return marketsData[_idx].result; }
-    function getEndTime(uint _idx) view public returns(uint)            { return marketsData[_idx].endTime; }
+    function getPlayer(uint _idx) view public returns(address)          { return marketsData[_idx].player; }
     function getReferee(uint _idx) view public returns(address)         { return marketsData[_idx].referee; }
+    function getStartTime(uint _idx) view public returns(uint)          { return marketsData[_idx].startTime; }
+    function getEndTime(uint _idx) view public returns(uint)            { return marketsData[_idx].endTime; }
     function getLowerMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerLower; }
     function getUpperMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerUpper; }
     function getRevenueFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].revenueFactor; }
