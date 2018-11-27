@@ -3,9 +3,10 @@ pragma solidity ^0.4.23;
 import "../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
+import "./DateTime.sol";
 import "./NGT.sol";
 
-contract Markets is Ownable{
+contract Markets is Ownable, DateTime {
 
     using SafeMath for uint;
 
@@ -127,13 +128,14 @@ contract Markets is Ownable{
         // The market does not exist
         require(marketsFlag[idx] == false);
 
-        // check the times
+        // check the timestamps order
         require(now < _startTime);
         require(_startTime < _endTime);
 
-        // todo: add a checking on _startTime/_endTime to be sure they are the first and last days of a month
+        // check the timestamps values (they must be related to the first and the last second in a month)
+        require(_checkTimeStamps(_startTime, _endTime));
 
-        // check the referee
+        // check the referee address
         require(_referee != address(0));
         require(_referee != dso);
         require(_referee != _player);
@@ -141,8 +143,8 @@ contract Markets is Ownable{
         // check the maximum limits
         require(_maxLow < _maxUp);
 
-        // todo: add checking on revenue factor
-        // (_maxUp - _maxLow)*_revFactor == _stakedNGTs
+        // check the revenue factor
+        require(_checkRevenueFactor(_maxUp, _maxLow, _revFactor, _stakedNGTs) == true);
 
         // check the dso tokens allowance
         require(_stakedNGTs <= ngt.allowance(dso, address(this)));
@@ -379,6 +381,39 @@ contract Markets is Ownable{
 
         // Close the market
         marketsData[idx].state = MarketState.ClosedAfterJudgement;
+    }
+
+    // Check the revenue factor
+    function _checkRevenueFactor(uint _maxUp, uint _maxLow, uint _revFactor, uint _stakedNGTs) pure private returns(bool) {
+        uint calcNGTs = _maxUp.sub(_maxLow);
+        calcNGTs = calcNGTs.mul(_revFactor);
+
+        // (_maxUp - _maxLow)*_revFactor == _stakedNGTs
+        return calcNGTs == _stakedNGTs;
+    }
+
+    // Check the timestamps
+    function _checkTimeStamps(uint _tsStart, uint _tsEnd) pure private returns(bool) {
+        bool startFlag = false;
+        bool endFlag = false;
+
+        // Check the initial timestamp (it must be YYYY-MM-01 00:00:00)
+        if((getDay(_tsStart) == 1) &&
+           (getHour(_tsStart) == 0) &&
+           (getMinute(_tsStart) == 0) &&
+           (getSecond(_tsStart) == 0)) {
+            startFlag = true;
+        }
+
+        // Check the final timestamp (it must be YYYY-MM-LAST_DAY_OF_THE_MONTH 23:59:59)
+        if((getDay(_tsEnd) == getDaysInMonth(_tsEnd, getYear(_tsEnd))) &&
+           (getHour(_tsEnd) == 23) &&
+           (getMinute(_tsEnd) == 59) &&
+           (getSecond(_tsEnd) == 59)) {
+           endFlag = true;
+        }
+
+        return startFlag && endFlag;
     }
 
     // Calculate the idx of market hashing an address (the player) and a timestamp (the market starting time)
