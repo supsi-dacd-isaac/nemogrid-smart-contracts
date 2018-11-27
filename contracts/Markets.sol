@@ -183,17 +183,17 @@ contract Markets is Ownable{
         // check if the market is waiting for the player starting confirm
         require(marketsData[idx].state == MarketState.WaitingConfirmToStart);
 
-        // check if it is not too late to confirm
-        require(now <= marketsData[idx].startTime);
-
         // check the player tokens allowance
         require(stakedNGTs <= ngt.allowance(marketsData[idx].player, address(this)));
 
-        // The market is allowed to start
-        marketsData[idx].state = MarketState.Running;
+        // check if it is not too late to confirm
+        require(now <= marketsData[idx].startTime);
 
         // Player staking: allowed tokens are transferred from player wallet to this smart contract
         ngt.transferFrom(marketsData[idx].player, address(this), marketsData[idx].playerStaking);
+
+        // The market is allowed to start
+        marketsData[idx].state = MarketState.Running;
     }
 
     // refund requested by the DSO (i.e. the player has not confirmed the market opening)
