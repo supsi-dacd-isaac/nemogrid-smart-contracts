@@ -115,8 +115,8 @@ contract Markets is Ownable, DateTime {
     // *********************************************************
     // Negotiation functions:
 
-    // open a market, defined by: dso, player, startTime, endTime
-    function open(address _player, uint _startTime, uint _endTime, address _referee, uint _maxLow, uint _maxUp,
+    // open a market, defined by: dso, player, startTime
+    function open(address _player, uint _startTime, address _referee, uint _maxLow, uint _maxUp,
                   uint _revFactor, uint _penFactor, uint _stakedNGTs, uint _playerNGTs) public {
 
         // create the idx hashing the player and the startTime
@@ -128,12 +128,9 @@ contract Markets is Ownable, DateTime {
         // The market does not exist
         require(marketsFlag[idx] == false);
 
-        // check the timestamps order
+        // check the startTime timestamp
         require(now < _startTime);
-        require(_startTime < _endTime);
-
-        // check the timestamps values (they must be related to the first and the last second in a month)
-        require(_checkTimeStamps(_startTime, _endTime));
+        require(_checkStartTime(_startTime));
 
         // check the referee address
         require(_referee != address(0));
@@ -151,7 +148,7 @@ contract Markets is Ownable, DateTime {
 
         // The market can try to start: its data are saved in the mapping
         marketsData[idx].startTime = _startTime;
-        marketsData[idx].endTime = _endTime;
+        marketsData[idx].endTime = _calcEndTime(_startTime);
         marketsData[idx].referee = _referee;
         marketsData[idx].player = _player;
         marketsData[idx].maxPowerLower = _maxLow;
@@ -392,28 +389,14 @@ contract Markets is Ownable, DateTime {
         return calcNGTs == _stakedNGTs;
     }
 
-    // Check the timestamps
-    function _checkTimeStamps(uint _tsStart, uint _tsEnd) pure private returns(bool) {
-        bool startFlag = false;
-        bool endFlag = false;
+    // Check the startTime (it must be YYYY-MM-01 00:00:00)
+    function _checkStartTime(uint _ts) pure private returns(bool) {
+        return (getDay(_ts) == 1) && (getHour(_ts) == 0) && (getMinute(_ts) == 0) && (getSecond(_ts) == 0);
+    }
 
-        // Check the initial timestamp (it must be YYYY-MM-01 00:00:00)
-        if((getDay(_tsStart) == 1) &&
-           (getHour(_tsStart) == 0) &&
-           (getMinute(_tsStart) == 0) &&
-           (getSecond(_tsStart) == 0)) {
-            startFlag = true;
-        }
-
-        // Check the final timestamp (it must be YYYY-MM-LAST_DAY_OF_THE_MONTH 23:59:59)
-        if((getDay(_tsEnd) == getDaysInMonth(_tsEnd, getYear(_tsEnd))) &&
-           (getHour(_tsEnd) == 23) &&
-           (getMinute(_tsEnd) == 59) &&
-           (getSecond(_tsEnd) == 59)) {
-           endFlag = true;
-        }
-
-        return startFlag && endFlag;
+    // Calculate the endTime timestamp (it must be YYYY-MM-LAST_DAY_OF_THE_MONTH 23:59:59)
+    function _calcEndTime(uint _ts) pure private returns(uint) {
+        return toTimestamp(getYear(_ts), getMonth(_ts), getDaysInMonth(getMonth(_ts), getYear(_ts)), 23, 59, 59);
     }
 
     // Calculate the idx of market hashing an address (the player) and a timestamp (the market starting time)

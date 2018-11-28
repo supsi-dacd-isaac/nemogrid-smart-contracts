@@ -9,12 +9,12 @@ require('chai')
   .use(require('chai-bignumber')(BigNumber))
   .should();
 
-const _ = require('lodash')
-const { ecsign } = require('ethereumjs-util')
+const _ = require('lodash');
+const { ecsign } = require('ethereumjs-util');
 const moment = require('moment');
 const Web3Utils = require('web3-utils');
-const abi = require('ethereumjs-abi')
-const BN = require('bn.js')
+const abi = require('ethereumjs-abi');
+const BN = require('bn.js');
 const EVMRevert = 'revert';
 
 /*
@@ -173,7 +173,7 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
     // Player staked NGTs
     const PLAYER_STAKING = 15;
 
-    var startTime, endTime;
+    var startTime;
 
     before(async function() {
         // Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
@@ -205,57 +205,56 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
     });
 
     describe('Tests related to unsuccessful markets openings:', function() {
-        // Set markets startTime and endTime
+        // Set markets startTime
         var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
         startTime = timestamps.first;
-        endTime = timestamps.last;
 
         it('A cheater, i.e. a wallet not allowed to open a market, tries to perform an opening', async function() {
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: cheater}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to open an already opened market', async function() {
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             // Try to open it again
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to open a market with bad timestamps', async function() {
             // Start time in the past
-            await this.markets.open(player, WRONG_STARTTIME, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, WRONG_STARTTIME, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
 
-            // Start time > End time
-            await this.markets.open(player, endTime, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            // Start time not related to a date in format YYYY-MM-01 00:00:00
+            await this.markets.open(player, startTime + 60, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to set a not allowed referee', async function() {
             // The dso is also the referee
-            await this.markets.open(player, startTime, endTime, dso, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, dso, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
 
             // The player is also the referee
-            await this.markets.open(player, startTime, endTime, player, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, player, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
 
             // The referee is the address 0
-            await this.markets.open(player, startTime, endTime, 0, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, 0, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to set wrong maximums', async function() {
-            await this.markets.open(player, startTime, endTime, referee, MAX_UPPER, MAX_LOWER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_UPPER, MAX_LOWER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to stake too tokens', async function() {
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, ALLOWED_TOKENS+1, PLAYER_TOKENS, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
     });
@@ -263,7 +262,7 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
     describe('Tests related to unsuccessful confirms of markets openings:', function() {
         it('A cheater, i.e. a wallet not allowed to confirm, tries to perform a confirm opening', async function() {
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             var idx = await this.markets.calcIdx(player, startTime);
@@ -279,7 +278,7 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
 
         it('Try to confirm with a wrong staking, i.e. the player is trying to cheat', async function() {
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             var idx = await this.markets.calcIdx(player, startTime);
@@ -289,7 +288,7 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
 
         it('Try to confirm an already confirmed market', async function() {
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             var idx = await this.markets.calcIdx(player, startTime), data;
@@ -310,7 +309,7 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
         });
 
         it('Try to stake too tokens', async function() {
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             var idx = await this.markets.calcIdx(player, startTime);
@@ -321,9 +320,8 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
         it('Try to perform a too-late confirm', async function() {
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
 
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
             var idx = await this.markets.calcIdx(player, startTime);
 
@@ -336,13 +334,12 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
 
     describe('Tests related to unsuccessful refunds:', function() {
         it('A cheater, i.e. a wallet not allowed to be refunded, tries to perform a refund', async function() {
-            // Set markets startTime and endTime
+            // Set markets startTime
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
 
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
             var idx = await this.markets.calcIdx(player, startTime);
 
@@ -358,10 +355,9 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
             var data;
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
 
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
             var idx = await this.markets.calcIdx(player, startTime);
 
@@ -383,10 +379,9 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
         it('Try to get the refund too early, the player can still confirm', async function() {
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
 
             // Open correctly a market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
             var idx = await this.markets.calcIdx(player, startTime);
 
@@ -403,10 +398,10 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
             // Define the timestamps
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
+            var endTime = timestamps.last;
 
             // Open the market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             // Get the market idx from the smart contract
@@ -465,10 +460,9 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
             // Define the timestamps
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
 
             // Open the market
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
             idx = await this.markets.calcIdx(player, timestamps.first);
 
@@ -490,11 +484,10 @@ contract('Markets', function([owner, dso, player, referee, cheater]) {
             // Define the timestamps
             var timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            endTime = timestamps.last;
 
             var tknsMarket, tknsDSO, idx = await this.markets.calcIdx(player, startTime);
 
-            await this.markets.open(player, startTime, endTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
+            await this.markets.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
                                     PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
 
             // Set the test time after the declared market beginning
