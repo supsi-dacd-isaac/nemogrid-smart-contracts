@@ -1,6 +1,6 @@
 # nemogrid-smart-contracts
 
-The basic idea of the smart contracts is to manage energy markets, with settlements every month. The development of blockchain-based energy markets is an aim of NEMoGrid project ((http://nemogrid.eu/).
+The basic idea of the smart contracts is to manage energy markets, with settlements every month. The development of blockchain-based energy markets is an aim of NEMoGrid project (http://nemogrid.eu/).
 
 # Description
 
