@@ -275,7 +275,7 @@ contract Markets is Ownable, DateTime {
         uint peakDiff;
 
         // measured peak < lowerMax => PRIZE: the player takes all the DSO staking
-        if(peak < marketsData[idx].maxPowerLower) {
+        if(peak <= marketsData[idx].maxPowerLower) {
             tokensForDso = 0;
             tokensForPlayer = marketsData[idx].dsoStaking.add(marketsData[idx].playerStaking);
 
@@ -283,7 +283,7 @@ contract Markets is Ownable, DateTime {
             marketsData[idx].result = MarketResult.Prize;
         }
         // lowerMax <= measured peak <= upperMax => REVENUE: the player takes a part of the DSO staking
-        else if(peak >= marketsData[idx].maxPowerLower && peak <= marketsData[idx].maxPowerUpper) {
+        else if(peak > marketsData[idx].maxPowerLower && peak <= marketsData[idx].maxPowerUpper) {
             // Calculate the revenue amount
             peakDiff = peak.sub(marketsData[idx].maxPowerLower);
 
@@ -296,20 +296,20 @@ contract Markets is Ownable, DateTime {
             // Set the market result as a player revenue
             marketsData[idx].result = MarketResult.Revenue;
         }
-        // measured peak > upperMax => PENALTY: the DSO takes a part of the revenue staking
+        // measured peak > upperMax => PENALTY/CRASH: the DSO takes a part of/all the revenue staking
         else {
             // Calculate the penalty amount
             peakDiff = peak.sub(marketsData[idx].maxPowerUpper);
 
             tokensForDso = peakDiff.mul(marketsData[idx].penaltyFactor);
 
-            // If the penalty tokens exceed the staking => the DSO takes it all
+            // If the penalty exceeds the staking => the DSO takes it all
             if(tokensForDso >= marketsData[idx].playerStaking) {
                 tokensForPlayer = 0;
                 tokensForDso = marketsData[idx].dsoStaking.add(marketsData[idx].playerStaking);
 
                 // Set the market result as a player penalty
-                marketsData[idx].result = MarketResult.Penalty;
+                marketsData[idx].result = MarketResult.Crash;
             }
             else {
                 tokensForPlayer = marketsData[idx].playerStaking.sub(tokensForDso);
@@ -357,14 +357,14 @@ contract Markets is Ownable, DateTime {
         // Check if the DSO declared the truth (i.e. player cheated)
         if(marketsData[idx].powerPeakDeclaredByDso == _powerPeak)
         {
-            marketsData[idx].result = MarketResult.DSOCheating;
+            marketsData[idx].result = MarketResult.PlayerCheating;
 
             ngt.transfer(dso, totalStaking);
         }
         // Check if the player declared the truth (i.e. DSO cheated)
         else if(marketsData[idx].powerPeakDeclaredByPlayer == _powerPeak)
         {
-            marketsData[idx].result = MarketResult.PlayerCheating;
+            marketsData[idx].result = MarketResult.DSOCheating;
 
             ngt.transfer(marketsData[idx].player, totalStaking);
         }
