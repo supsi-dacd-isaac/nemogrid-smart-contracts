@@ -6,7 +6,7 @@ import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./DateTime.sol";
 import "./NGT.sol";
 
-contract Markets is Ownable, DateTime {
+contract MarketsManager is Ownable, DateTime {
 
     using SafeMath for uint;
 

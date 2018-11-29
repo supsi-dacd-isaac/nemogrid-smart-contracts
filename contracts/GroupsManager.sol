@@ -4,7 +4,7 @@ import "../node_modules/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 import "./MarketsManager.sol";
 
-contract MarketsManager is Ownable{
+contract GroupsManager is Ownable{
 
     // Variables
 
@@ -12,7 +12,7 @@ contract MarketsManager is Ownable{
     address public token;
 
     // Markets mapping
-    mapping (address => Markets) groups;
+    mapping (address => MarketsManager) groups;
     mapping (address => bool) groupsFlags;
 
     // Functions
@@ -22,22 +22,18 @@ contract MarketsManager is Ownable{
         token = _token;
     }
 
-    // Add a markets set: a markets set is defined by the triple (dso, player, token)
-    function addMarketsSet(address _dso) onlyOwner public returns(address) {
+    // Add a markets group, defined by the couple (dso, token)
+    function addGroup(address _dso) onlyOwner public {
 
         // The dso cannot be also the owner
-        // todo add the tests
         require(owner() != _dso);
 
         // Check if this markets set already exists
         require(groupsFlags[_dso] == false);
 
         // a set of markets is defined by the triple (dso, player, token)
-        groups[_dso] = new Markets(_dso, token);
+        groups[_dso] = new MarketsManager(_dso, token);
         groupsFlags[_dso] = true;
-
-        // Return the address of the market set just created
-        return getAddress(_dso);
     }
 
     // View functions
