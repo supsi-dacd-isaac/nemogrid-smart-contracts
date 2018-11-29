@@ -104,6 +104,24 @@ contract MarketsManager is Ownable, DateTime {
     mapping (uint => MarketData) marketsData;
     mapping (uint => bool) marketsFlag;
 
+    // Events
+    event Opened(address player, uint startTime, uint idx);
+    event ConfirmedOpening(address player, uint startTime, uint idx);
+    event RefundedDSO(address dso);
+    event Settled(address player, uint startTime, uint idx, uint powerPeak);
+    event ConfirmedSettlement(address player, uint startTime, uint idx, uint powerPeak);
+    event RefereeRequested(address player, uint startTime, uint idx, uint powerPeakDSO, uint powerPeakPlayer);
+    event Prize(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
+    event Revenue(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
+    event Penalty(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
+    event Crash(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
+    event Closed(address player, uint startTime, uint idx, MarketResult marketResult);
+    event PlayerCheated(address player, uint startTime, uint idx);
+    event DSOCheated(address player, uint startTime, uint idx);
+    event DSOAndPlayerCheated(address player, uint startTime, uint idx);
+    event BurntTokens(address player, uint startTime, uint idx, uint burntTokens);
+    event ClosedAfterJudgement(address player, uint startTime, uint idx, MarketResult marketResult);
+
     // Functions
 
     // Constructor
@@ -165,6 +183,8 @@ contract MarketsManager is Ownable, DateTime {
 
         // DSO staking: allowed tokens are transferred from dso wallet to this smart contract
         ngt.transferFrom(dso, address(this), marketsData[idx].dsoStaking);
+
+        emit Opened(_player, _startTime, idx);
     }
 
     // Confirm/not confirm to play the market, performed by the player
@@ -193,6 +213,8 @@ contract MarketsManager is Ownable, DateTime {
 
         // The market is allowed to start
         marketsData[idx].state = MarketState.Running;
+
+        emit ConfirmedOpening(marketsData[idx].player, marketsData[idx].startTime, idx);
     }
 
     // refund requested by the DSO (i.e. the player has not confirmed the market opening)
@@ -217,6 +239,8 @@ contract MarketsManager is Ownable, DateTime {
 
         // Set the market state
         marketsData[idx].state = MarketState.ClosedNotPlayed;
+
+        emit RefundedDSO(dso);
     }
 
     // *********************************************************
@@ -239,6 +263,8 @@ contract MarketsManager is Ownable, DateTime {
 
         marketsData[idx].powerPeakDeclaredByDso = powerPeak;
         marketsData[idx].state = MarketState.WaitingConfirmToEnd;
+
+        emit Settled(marketsData[idx].player, marketsData[idx].startTime, idx, powerPeak);
     }
 
     // Confirm the maximum power measured, performed by the player
@@ -255,6 +281,8 @@ contract MarketsManager is Ownable, DateTime {
 
         marketsData[idx].powerPeakDeclaredByPlayer = powerPeak;
 
+        emit ConfirmedSettlement(marketsData[idx].player, marketsData[idx].startTime, idx, powerPeak);
+
         // check if the two peak declarations (DSO and player) are equal
         if(marketsData[idx].powerPeakDeclaredByDso == marketsData[idx].powerPeakDeclaredByPlayer) {
 
@@ -264,6 +292,9 @@ contract MarketsManager is Ownable, DateTime {
         else {
             // The referee decision is requested
             marketsData[idx].state = MarketState.WaitingForTheReferee;
+
+            emit RefereeRequested(marketsData[idx].player, marketsData[idx].startTime, idx,
+                                  marketsData[idx].powerPeakDeclaredByDso, marketsData[idx].powerPeakDeclaredByPlayer);
         }
     }
 
@@ -281,6 +312,8 @@ contract MarketsManager is Ownable, DateTime {
 
             // Set the market result as a player prize
             marketsData[idx].result = MarketResult.Prize;
+
+            emit Prize(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
         }
         // lowerMax <= measured peak <= upperMax => REVENUE: the player takes a part of the DSO staking
         else if(peak > marketsData[idx].maxPowerLower && peak <= marketsData[idx].maxPowerUpper) {
@@ -295,6 +328,8 @@ contract MarketsManager is Ownable, DateTime {
 
             // Set the market result as a player revenue
             marketsData[idx].result = MarketResult.Revenue;
+
+            emit Revenue(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
         }
         // measured peak > upperMax => PENALTY/CRASH: the DSO takes a part of/all the revenue staking
         else {
@@ -310,6 +345,8 @@ contract MarketsManager is Ownable, DateTime {
 
                 // Set the market result as a player penalty
                 marketsData[idx].result = MarketResult.Crash;
+
+                emit Crash(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
             }
             else {
                 tokensForPlayer = marketsData[idx].playerStaking.sub(tokensForDso);
@@ -317,6 +354,8 @@ contract MarketsManager is Ownable, DateTime {
 
                 // Set the market result as a player penalty
                 marketsData[idx].result = MarketResult.Penalty;
+
+                emit Penalty(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
             }
         }
 
@@ -340,6 +379,7 @@ contract MarketsManager is Ownable, DateTime {
 
         // Close the market
         marketsData[idx].state = MarketState.Closed;
+        emit Closed(marketsData[idx].player, marketsData[idx].startTime, idx, marketsData[idx].result);
     }
 
     // The referees takes a decision to close the market
@@ -360,6 +400,8 @@ contract MarketsManager is Ownable, DateTime {
             marketsData[idx].result = MarketResult.PlayerCheating;
 
             ngt.transfer(dso, totalStaking);
+
+            emit PlayerCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
         }
         // Check if the player declared the truth (i.e. DSO cheated)
         else if(marketsData[idx].powerPeakDeclaredByPlayer == _powerPeak)
@@ -367,6 +409,8 @@ contract MarketsManager is Ownable, DateTime {
             marketsData[idx].result = MarketResult.DSOCheating;
 
             ngt.transfer(marketsData[idx].player, totalStaking);
+
+            emit DSOCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
         }
         // Both dso and player are cheating, the token are sent to address(0) :D
         else {
@@ -374,10 +418,13 @@ contract MarketsManager is Ownable, DateTime {
 
             // Burn the tokens
             ngt.burn(totalStaking);
+            emit DSOAndPlayerCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
+            emit BurntTokens(marketsData[idx].player, marketsData[idx].startTime, idx, totalStaking);
         }
 
         // Close the market
         marketsData[idx].state = MarketState.ClosedAfterJudgement;
+        emit ClosedAfterJudgement(marketsData[idx].player, marketsData[idx].startTime, idx, marketsData[idx].result);
     }
 
     // Check the revenue factor

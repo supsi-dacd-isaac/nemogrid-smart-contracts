@@ -15,7 +15,8 @@ contract GroupsManager is Ownable{
     mapping (address => MarketsManager) groups;
     mapping (address => bool) groupsFlags;
 
-    // Functions
+    // Events
+    event AddedGroup(address dso, address token);
 
     // Constructor
     constructor(address _token) public {
@@ -34,6 +35,8 @@ contract GroupsManager is Ownable{
         // a set of markets is defined by the triple (dso, player, token)
         groups[_dso] = new MarketsManager(_dso, token);
         groupsFlags[_dso] = true;
+
+        emit AddedGroup(_dso, token);
     }
 
     // View functions
