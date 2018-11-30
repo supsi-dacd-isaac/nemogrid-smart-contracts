@@ -4,6 +4,9 @@ secret
 # .idea folder
 .idea
 
+# venv folder
+venv
+
 # node_modules folder
 node_modules
 
