@@ -7,6 +7,7 @@ Nemogrid smart contracts's documentation
 ========================================
 
 Each market is defined by:
+
 - a :code:`DSO` (Distribution System Operator),
 - a user, called :code:`Player` in the contracts, whose energy is provided by the DSO
 - an ERC20 token (named NGT, NemoGrid Token), which represents the currency used to stake and distribute revenues or penalties
