@@ -85,6 +85,9 @@ contract MarketsManager is Ownable, DateTime {
         // Power peak declared by the player
         uint powerPeakDeclaredByPlayer;
 
+        // Revnue token for the referee
+        uint revPercReferee;
+
         // State of the market
         MarketState state;
 
@@ -135,7 +138,7 @@ contract MarketsManager is Ownable, DateTime {
 
     // open a market, defined by: dso, player, startTime
     function open(address _player, uint _startTime, address _referee, uint _maxLow, uint _maxUp,
-                  uint _revFactor, uint _penFactor, uint _stakedNGTs, uint _playerNGTs) public {
+                  uint _revFactor, uint _penFactor, uint _stakedNGTs, uint _playerNGTs, uint _revPercReferee) public {
 
         // create the idx hashing the player and the startTime
         uint idx = uint(keccak256(abi.encodePacked(_player, _startTime)));
@@ -177,6 +180,7 @@ contract MarketsManager is Ownable, DateTime {
         marketsData[idx].playerStaking = _playerNGTs;
         marketsData[idx].tknReleasedToDso = 0;
         marketsData[idx].tknReleasedToPlayer = 0;
+        marketsData[idx].revPercReferee = _revPercReferee;
         marketsData[idx].state = MarketState.WaitingConfirmToStart;
         marketsData[idx].result = MarketResult.NotDecided;
         marketsFlag[idx] = true;
@@ -391,15 +395,22 @@ contract MarketsManager is Ownable, DateTime {
         // the market is waiting for the referee decision
         require(marketsData[idx].state == MarketState.WaitingForTheReferee);
 
-        // The referee decides taking into account the declared peaks
-        uint totalStaking = marketsData[idx].dsoStaking.add(marketsData[idx].playerStaking);
+        // Calculate the total staking
+        uint tokensStaked = marketsData[idx].dsoStaking.add(marketsData[idx].playerStaking);
+
+        // Calculate the tokens for the referee
+        uint tokensForReferee = tokensStaked.div(uint(100).div(marketsData[idx].revPercReferee));
+
+        // Calculate the tokens amount for the honest actor
+        uint tokensForHonest = tokensStaked.sub(tokensForReferee);
 
         // Check if the DSO declared the truth (i.e. player cheated)
         if(marketsData[idx].powerPeakDeclaredByDso == _powerPeak)
         {
             marketsData[idx].result = MarketResult.PlayerCheating;
 
-            ngt.transfer(dso, totalStaking);
+            // Send tokens to the honest DSO
+            ngt.transfer(dso, tokensForHonest);
 
             emit PlayerCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
         }
@@ -408,7 +419,8 @@ contract MarketsManager is Ownable, DateTime {
         {
             marketsData[idx].result = MarketResult.DSOCheating;
 
-            ngt.transfer(marketsData[idx].player, totalStaking);
+            // Send tokens to the honest player
+            ngt.transfer(marketsData[idx].player, tokensForHonest);
 
             emit DSOCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
         }
@@ -416,11 +428,15 @@ contract MarketsManager is Ownable, DateTime {
         else {
             marketsData[idx].result = MarketResult.Cheaters;
 
-            // Burn the tokens
-            ngt.burn(totalStaking);
+            // There are no honest, the related tokens are burnt
+            ngt.burn(tokensForHonest);
+
             emit DSOAndPlayerCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
-            emit BurntTokens(marketsData[idx].player, marketsData[idx].startTime, idx, totalStaking);
+            emit BurntTokens(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForHonest);
         }
+
+        // Send tokens to referee
+        ngt.transfer(marketsData[idx].referee, tokensForReferee);
 
         // Close the market
         marketsData[idx].state = MarketState.ClosedAfterJudgement;

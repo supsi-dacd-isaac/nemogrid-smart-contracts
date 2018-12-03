@@ -24,7 +24,7 @@ contract GroupsManager is Ownable{
     event AddedGroup(address dso, address token);
 
     /// Constructor
-    /// @param token The NemoGrid token address
+    /// @param _token The NemoGrid token address
     constructor(address _token) public {
         token = _token;
     }

@@ -107,9 +107,11 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
     const RESULT_CHEATERS = 9;
 
     // Token amounts
-    const DSO_TOKENS = 1000;
-    const PLAYER_TOKENS = 1000;
-    const ALLOWED_TOKENS = 100;
+    const DSO_TOKENS = 20000;
+    const PLAYER_TOKENS = 20000;
+    const REFEREE_TOKENS = 1000;
+    const TOTAL_TOKENS = DSO_TOKENS + PLAYER_TOKENS + REFEREE_TOKENS;
+    const ALLOWED_TOKENS = 10000;
 
     const WRONG_STARTTIME = moment.utc('2017-12-01 00:00:00').toDate().getTime() / 1000;
 
@@ -120,20 +122,23 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
     const MAX_UPPER = 20;
 
     // Revenue factor [NGT/kW]
-    const REV_FACTOR = 1;
+    const REV_FACTOR = 10;
 
     // Penalty factor [NGT/kW]
-    const PEN_FACTOR = 2;
+    const PEN_FACTOR = 20;
 
     // DSO staked NGTs
-    const DSO_STAKING = 10;
+    const DSO_STAKING = 100;
 
     // Player staked NGTs
-    const PLAYER_STAKING = 20;
+    const PLAYER_STAKING = 200;
+
+    // Percentage for referee
+    const PERC_TKNS_REFEREE = 2;
 
     // Main variables
     var startTime, endTime, timestamps, idx, data, exists, idxUtils, staking, tknsMarket, tknsDSO;
-    var marketTkns, dsoTkns, playerTkns, marketResult, marketState, powerPeak, calcDsoTkns, calcPlayerTkns;
+    var marketTkns, dsoTkns, playerTkns, refereeTkns, marketResult, marketState, powerPeak, calcDsoTkns, calcPlayerTkns;
 
     before(async function() {
         // Advance to the next block to correctly read time in the solidity "now" function interpreted by testrpc
@@ -151,6 +156,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         // Mint tokens
         await this.NGT.mint(dso, DSO_TOKENS);
         await this.NGT.mint(player, PLAYER_TOKENS);
+        await this.NGT.mint(referee, REFEREE_TOKENS);
 
         // Set tokens allowance
         this.NGT.increaseAllowance(this.marketsManager.address, ALLOWED_TOKENS, {from: dso});
@@ -171,51 +177,51 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
         it('A cheater, i.e. a wallet not allowed to open a market, tries to perform an opening', async function() {
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: cheater}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: cheater}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to open an already opened market', async function() {
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             // Try to open it again
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to open a market with bad timestamps', async function() {
             // Start time in the past
             await this.marketsManager.open(player, WRONG_STARTTIME, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
 
             // Start time not related to a date in format YYYY-MM-01 00:00:00
             await this.marketsManager.open(player, startTime + 60, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to set a not allowed referee', async function() {
             // The dso is also the referee
             await this.marketsManager.open(player, startTime, dso, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
 
             // The player is also the referee
             await this.marketsManager.open(player, startTime, player, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
 
             // The referee is the address 0
             await this.marketsManager.open(player, startTime, 0, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to set wrong maximums', async function() {
             await this.marketsManager.open(player, startTime, referee, MAX_UPPER, MAX_LOWER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
 
         it('Try to stake too tokens', async function() {
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, ALLOWED_TOKENS+1, PLAYER_TOKENS, {from: dso}).should.be.rejectedWith(EVMRevert);
+                                    PEN_FACTOR, ALLOWED_TOKENS+1, PLAYER_TOKENS, PERC_TKNS_REFEREE, {from: dso}).should.be.rejectedWith(EVMRevert);
         });
     });
 
@@ -223,7 +229,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         it('A cheater, i.e. a wallet not allowed to confirm, tries to perform a confirm opening', async function() {
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             idx = await this.marketsManager.calcIdx(player, startTime);
 
@@ -239,7 +245,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         it('Try to confirm with a wrong staking, i.e. the player is trying to cheat', async function() {
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             idx = await this.marketsManager.calcIdx(player, startTime);
 
@@ -249,7 +255,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         it('Try to confirm an already confirmed market', async function() {
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             idx = await this.marketsManager.calcIdx(player, startTime), data;
             // Check the market state before the first confirm,  it has to be STATE_WAITING_CONFIRM_TO_START
@@ -270,7 +276,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
         it('Try to stake too tokens', async function() {
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             idx = await this.marketsManager.calcIdx(player, startTime);
 
@@ -282,7 +288,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             // Set the test time after the declared market beginning
@@ -300,7 +306,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.refund(idx, {from: cheater}).should.be.rejectedWith(EVMRevert);
@@ -317,7 +323,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             // Check the market state before the first confirm,  it has to be STATE_WAITING_CONFIRM_TO_START
@@ -341,7 +347,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             // Open correctly a market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             // Try to get the refund
@@ -358,7 +364,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             // Open the market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             // Get the market idx from the smart contract
             idx = await this.marketsManager.calcIdx(player, startTime);
@@ -416,7 +422,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             // Open the market
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, timestamps.first);
 
             // Confirm the market
@@ -441,7 +447,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             tknsMarket, tknsDSO, idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
 
             // Set the test time after the declared market beginning
             await increaseTimeTo(startTime + 10*60);
@@ -474,7 +480,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, timestamps.first);
 
             // Confirm the market
@@ -493,7 +499,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, timestamps.first);
 
             // Confirm the market
@@ -513,7 +519,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, timestamps.first);
 
             // Set the time a minute after the market end
@@ -542,7 +548,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, timestamps.first);
 
             // Confirm the market
@@ -565,7 +571,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
 
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, timestamps.first);
 
             // Confirm the market
@@ -589,7 +595,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -628,7 +634,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -666,7 +672,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -701,7 +707,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -735,7 +741,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp) * 1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -756,7 +762,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp) * 1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -772,12 +778,12 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
     });
 
     describe('Tests related to successful referee decisions:', function() {
-        it('DSO has cheated: The referee assigns all the DSO tokens to the player', async function() {
+        it('DSO has cheated: The referee retains a tokens percentage decided during the opening and assigns all the remaining part to the player', async function() {
             // run the market
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -796,10 +802,12 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             marketTkns = await this.NGT.balanceOf(this.marketsManager.address);
             dsoTkns = await this.NGT.balanceOf(dso);
             playerTkns = await this.NGT.balanceOf(player);
+            refereeTkns = await this.NGT.balanceOf(referee);
 
             marketTkns.should.be.bignumber.equal(0);
             dsoTkns.should.be.bignumber.equal(DSO_TOKENS - DSO_STAKING);
-            playerTkns.should.be.bignumber.equal(PLAYER_TOKENS + DSO_STAKING);
+            playerTkns.should.be.bignumber.equal(PLAYER_TOKENS - PLAYER_STAKING + (DSO_STAKING + PLAYER_STAKING)*(1-PERC_TKNS_REFEREE/1e2));
+            refereeTkns.should.be.bignumber.equal(REFEREE_TOKENS + (DSO_STAKING + PLAYER_STAKING)*PERC_TKNS_REFEREE/1e2);
 
             // Check market result and state
             marketResult = await this.marketsManager.getResult(idx);
@@ -808,12 +816,12 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             marketState.should.be.bignumber.equal(STATE_CLOSED_AFTER_JUDGEMENT);
         });
 
-        it('Player has cheated: The referee assigns all the player tokens to the DSO', async function() {
+        it('Player has cheated: The referee retains a tokens percentage decided during the opening and assigns all the remaining part to the DSO', async function() {
             // run the market
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -832,10 +840,12 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             marketTkns = await this.NGT.balanceOf(this.marketsManager.address);
             dsoTkns = await this.NGT.balanceOf(dso);
             playerTkns = await this.NGT.balanceOf(player);
+            refereeTkns = await this.NGT.balanceOf(referee);
 
             marketTkns.should.be.bignumber.equal(0);
-            dsoTkns.should.be.bignumber.equal(DSO_TOKENS + PLAYER_STAKING);
+            dsoTkns.should.be.bignumber.equal(DSO_TOKENS - DSO_STAKING + (DSO_STAKING + PLAYER_STAKING)*(1-PERC_TKNS_REFEREE/1e2));
             playerTkns.should.be.bignumber.equal(PLAYER_TOKENS - PLAYER_STAKING);
+            refereeTkns.should.be.bignumber.equal(REFEREE_TOKENS + (DSO_STAKING + PLAYER_STAKING)*PERC_TKNS_REFEREE/1e2);
 
             // Check market result and state
             marketResult = await this.marketsManager.getResult(idx);
@@ -844,12 +854,12 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             marketState.should.be.bignumber.equal(STATE_CLOSED_AFTER_JUDGEMENT);
         });
 
-        it('Both DSO and player have cheated: The referee burns all the staked tokens', async function() {
+        it('Both DSO and player have cheated: The referee retains a tokens percentage decided during the opening and burns all the remaining part', async function() {
             // run the market
             timestamps = getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, referee, MAX_LOWER, MAX_UPPER, REV_FACTOR,
-                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, {from: dso});
+                                    PEN_FACTOR, DSO_STAKING, PLAYER_STAKING, PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             await this.marketsManager.confirmOpening(idx, PLAYER_STAKING, {from: player});
@@ -868,10 +878,15 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             marketTkns = await this.NGT.balanceOf(this.marketsManager.address);
             dsoTkns = await this.NGT.balanceOf(dso);
             playerTkns = await this.NGT.balanceOf(player);
+            refereeTkns = await this.NGT.balanceOf(referee);
 
             marketTkns.should.be.bignumber.equal(0);
             dsoTkns.should.be.bignumber.equal(DSO_TOKENS - DSO_STAKING);
             playerTkns.should.be.bignumber.equal(PLAYER_TOKENS - PLAYER_STAKING);
+            refereeTkns.should.be.bignumber.equal(REFEREE_TOKENS + (DSO_STAKING + PLAYER_STAKING)*PERC_TKNS_REFEREE/1e2);
+
+            // Check the tokens urning
+            (await this.NGT.totalSupply()).should.be.bignumber.equal(TOTAL_TOKENS - (DSO_STAKING + PLAYER_STAKING)*(1-PERC_TKNS_REFEREE/1e2));
 
             // Check market result and state
             marketResult = await this.marketsManager.getResult(idx);
