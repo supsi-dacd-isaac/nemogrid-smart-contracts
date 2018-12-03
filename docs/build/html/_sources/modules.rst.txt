@@ -1,0 +1,6 @@
+contracts
+=========
+
+.. toctree::
+   :maxdepth: 4
+

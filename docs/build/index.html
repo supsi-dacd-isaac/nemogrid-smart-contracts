@@ -1,0 +1,141 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Nemogrid smart contracts’s documentation &#8212; Nemogrid smart contracts  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="GroupsManager contract" href="groups_manager.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="nemogrid-smart-contracts-s-documentation">
+<h1>Nemogrid smart contracts’s documentation<a class="headerlink" href="#nemogrid-smart-contracts-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Each market is defined by:</p>
+<ul class="simple">
+<li>a <code class="code docutils literal notranslate"><span class="pre">DSO</span></code> (Distribution System Operator),</li>
+<li>a user, called <code class="code docutils literal notranslate"><span class="pre">Player</span></code> in the contracts, whose energy is provided by the DSO</li>
+<li>an ERC20 token (named NGT, NemoGrid Token), which represents the currency used to stake and distribute revenues or penalties</li>
+<li>a month, the period related to the market</li>
+<li>a set of features (maximum peaks to avoid to reach, revenue/penalty amounts, staked tokens, referee wallet etc.)</li>
+</ul>
+<p><code class="code docutils literal notranslate"><span class="pre">DSO</span></code> and <code class="code docutils literal notranslate"><span class="pre">Player</span></code> agree off-chain on the market features and then send sequentially the following on-chain transactions:</p>
+<div class="code highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">1</span><span class="p">)</span> <span class="n">OPENING</span><span class="p">:</span> <span class="n">DSO</span> <span class="n">opens</span> <span class="n">the</span> <span class="n">market</span>
+<span class="mi">2</span><span class="p">)</span> <span class="n">OPENING_CONFIRM</span><span class="p">:</span> <span class="n">Player</span> <span class="n">confirms</span> <span class="n">the</span> <span class="n">market</span> <span class="n">opening</span>
+<span class="mi">3</span><span class="p">)</span> <span class="n">SETTLE</span><span class="p">:</span> <span class="n">DSO</span> <span class="n">settles</span> <span class="n">the</span> <span class="n">market</span><span class="p">,</span> <span class="n">sending</span> <span class="n">the</span> <span class="n">maximum</span> <span class="n">consumption</span> <span class="n">of</span> <span class="n">Player</span> <span class="n">to</span> <span class="n">the</span> <span class="n">contract</span>
+<span class="mi">4</span><span class="p">)</span> <span class="n">SETTLEMENT_CONFIRM</span><span class="p">:</span> <span class="n">Player</span> <span class="n">confirms</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">the</span> <span class="n">settlement</span>
+</pre></div>
+</div>
+<p>If the settlement is not confirmed by <code class="code docutils literal notranslate"><span class="pre">Player</span></code> an additional transaction is requested. This is performed by <code class="code docutils literal notranslate"><span class="pre">Referee</span></code>, a third-party wallet, which will have the final decision.</p>
+</div>
+<div class="section" id="smart-contracts">
+<h1>Smart contracts<a class="headerlink" href="#smart-contracts" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="groups_manager.html">GroupsManager contract</a><ul class="simple">
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Nemogrid smart contracts</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="groups_manager.html">GroupsManager contract</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="groups_manager.html" title="next chapter">GroupsManager contract</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Davide Strepparava.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
