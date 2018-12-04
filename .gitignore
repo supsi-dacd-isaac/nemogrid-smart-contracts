@@ -13,4 +13,7 @@ node_modules
 # package-lock.json file
 package-lock.json
 
+# _build docs folder
+_build
+
 
