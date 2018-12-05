@@ -18,6 +18,7 @@ Smart contracts
     :maxdepth: 4
 
     groups_manager
+    markets_manager
 
 
 Indices and tables

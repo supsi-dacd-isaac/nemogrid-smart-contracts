@@ -6,6 +6,7 @@ import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./DateTime.sol";
 import "./NGT.sol";
 
+/// @title A manager to handle energy markets
 contract MarketsManager is Ownable, DateTime {
     // todo Separate contract for the market logic
     // todo Daily market
@@ -14,7 +15,7 @@ contract MarketsManager is Ownable, DateTime {
 
     // Enum definitions
 
-    // State of the market
+    /// State of the market
     enum MarketState {
                         None,
                         NotRunning,             // Market not running
@@ -27,7 +28,7 @@ contract MarketsManager is Ownable, DateTime {
                         ClosedNotPlayed         // Market closed because not played by the player
                      }
 
-    // Result of the market
+    /// Result of the market
     enum MarketResult {
                         None,
                         NotDecided,         // The market is not ended
@@ -63,10 +64,10 @@ contract MarketsManager is Ownable, DateTime {
         // Upper maximum power threshold (W)
         uint maxPowerUpper;
 
-        // Revenue factor for the player (max_power_lower < max(P) < max_power_upper) (NMT/kW)
+        // Revenue factor for the player (max_power_lower < max(P) < max_power_upper) (NGT/kW)
         uint revenueFactor;
 
-        // Penalty factor for the player (max(P) > max_power_upper) (NMT/kW)
+        // Penalty factor for the player (max(P) > max_power_upper) (NGT/kW)
         uint penaltyFactor;
 
         // Amount staked by the DSO
@@ -87,7 +88,7 @@ contract MarketsManager is Ownable, DateTime {
         // Power peak declared by the player
         uint powerPeakDeclaredByPlayer;
 
-        // Revnue token for the referee
+        // Revenue token for the referee
         uint revPercReferee;
 
         // State of the market
@@ -99,56 +100,145 @@ contract MarketsManager is Ownable, DateTime {
 
     // Variables declaration
 
-    // NGT token
+    /// Nemogrid token (NGT) used in the markets
     NGT public ngt;
 
-    // DSO related to the markets
+    /// DSO related to the markets
     address public dso;
 
-    // Mappings related to markets data and flag
+    /// Mapping related to markets data
     mapping (uint => MarketData) marketsData;
+
+    /// Mapping related to markets existence
     mapping (uint => bool) marketsFlag;
 
     // Events
+
+    /// Market opened by DSO
+    /// @param player player address
+    /// @param startTime timestamp of the market starting time
+    /// @param idx market identifier
     event Opened(address player, uint startTime, uint idx);
+
+    /// Market opening confirmed by the player
+    /// @param player player address
+    /// @param startTime timestamp of the market starting time
+    /// @param idx market identifier
     event ConfirmedOpening(address player, uint startTime, uint idx);
-    event RefundedDSO(address dso);
+
+    /// DSO has been refunded
+    /// @param dso dso address
+    /// @param idx market identifier
+    event RefundedDSO(address dso, uint idx);
+
+    /// Market settled by DSO
+    /// @param player player address
+    /// @param startTime timestamp of the market starting time
+    /// @param idx market identifier
+    /// @param powerPeak maximum power consumed by player during the market
     event Settled(address player, uint startTime, uint idx, uint powerPeak);
+
+    /// Market settlement confirmed by player
+    /// @param player player address
+    /// @param startTime timestamp of the market starting time
+    /// @param idx market identifier
+    /// @param powerPeak maximum power consumed by player during the market
     event ConfirmedSettlement(address player, uint startTime, uint idx, uint powerPeak);
-    event RefereeRequested(address player, uint startTime, uint idx, uint powerPeakDSO, uint powerPeakPlayer);
-    event Prize(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
-    event Revenue(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
-    event Penalty(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
-    event Crash(address player, uint startTime, uint idx, uint tokensForDso, uint tokensForPlayer);
-    event Closed(address player, uint startTime, uint idx, MarketResult marketResult);
-    event PlayerCheated(address player, uint startTime, uint idx);
-    event DSOCheated(address player, uint startTime, uint idx);
-    event DSOAndPlayerCheated(address player, uint startTime, uint idx);
-    event BurntTokens(address player, uint startTime, uint idx, uint burntTokens);
-    event ClosedAfterJudgement(address player, uint startTime, uint idx, MarketResult marketResult);
+
+    /// Successful settlement, player and DSO agree on the declared power peaks
+    event SuccessfulSettlement();
+
+    /// Unsuccessful settlement, player and DSO do not agree on the declared power peaks
+    /// @param powerPeakDSO maximum power declared by dso
+    /// @param powerPeakPlayer maximum power declared by player
+    event UnsuccessfulSettlement(uint powerPeakDSO, uint powerPeakPlayer);
+
+    /// Market result is Prize
+    /// @param tokensForDso NGTs amount for the DSO
+    /// @param tokensForPlayer NGTs amount for the player
+    event Prize(uint tokensForDso, uint tokensForPlayer);
+
+    /// Market result is Revenue
+    /// @param tokensForDso NGTs amount for the DSO
+    /// @param tokensForPlayer NGTs amount for the player
+    event Revenue(uint tokensForDso, uint tokensForPlayer);
+
+    /// Market result is Penalty
+    /// @param tokensForDso NGTs amount for the DSO
+    /// @param tokensForPlayer NGTs amount for the player
+    event Penalty(uint tokensForDso, uint tokensForPlayer);
+
+    /// Market result is Crash
+    /// @param tokensForDso NGTs amount for the DSO
+    /// @param tokensForPlayer NGTs amount for the player
+    event Crash(uint tokensForDso, uint tokensForPlayer);
+
+    /// Market has been closed
+    /// @param marketResult market final result
+    event Closed(MarketResult marketResult);
+
+    /// Intervention of the referee to decide the market
+    /// @param player player address
+    /// @param startTime timestamp of the market starting time
+    /// @param idx market identifier
+    event RefereeIntervention(address player, uint startTime, uint idx);
+
+    /// Player cheated
+    event PlayerCheated();
+
+    /// DSO cheated
+    event DSOCheated();
+
+    /// Both DSO and player cheated
+    event DSOAndPlayerCheated();
+
+    /// Burnt NGTs tokens for the cheatings
+    /// @param burntTokens burnt tokens
+    event BurntTokens(uint burntTokens);
+
+    /// Market closed after judge intervention
+    /// @param marketResult market final result
+    event ClosedAfterJudgement(MarketResult marketResult);
 
     // Functions
 
-    // Constructor
+    /// Constructor
+    /// @param _dso DSO wallet
+    /// @param _token NGT token address
     constructor(address _dso, address _token) public {
         dso = _dso;
         ngt = NGT(_token);
     }
 
-    // *********************************************************
-    // Negotiation functions:
-
-    // open a market, defined by: dso, player, startTime
-    function open(address _player, uint _startTime, address _referee, uint _maxLow, uint _maxUp,
-                  uint _revFactor, uint _penFactor, uint _stakedNGTs, uint _playerNGTs, uint _revPercReferee) public {
+    /// Open a new market defined by the couple (player, startTime)
+    /// @param _player player wallet
+    /// @param _startTime initial timestamp of the market
+    /// @param _referee referee wallet
+    /// @param _maxLow lower limit of the maximum power consumed by player
+    /// @param _maxUp upper limit of the maximum power consumed by player
+    /// @param _revFactor revenue factor [NGT/kW]
+    /// @param _penFactor penalty factor [NGT/kW]
+    /// @param _stakedNGTs DSO staking of NGTs token
+    /// @param _playerNGTs NGT amount that player will have to stake in order to successfully confirm the opening
+    /// @param _revPercReferee referee revenue percentage
+    function open(address _player,
+                  uint _startTime,
+                  address _referee,
+                  uint _maxLow,
+                  uint _maxUp,
+                  uint _revFactor,
+                  uint _penFactor,
+                  uint _stakedNGTs,
+                  uint _playerNGTs,
+                  uint _revPercReferee) public {
 
         // create the idx hashing the player and the startTime
-        uint idx = uint(keccak256(abi.encodePacked(_player, _startTime)));
+        uint idx = calcIdx(_player, _startTime);
 
-        // Only the sender is allowed to create a market
+        // only the dso is allowed to open a market
         require(msg.sender == dso);
 
-        // The market does not exist
+        // check the market existence
         require(marketsFlag[idx] == false);
 
         // check the startTime timestamp
@@ -193,7 +283,9 @@ contract MarketsManager is Ownable, DateTime {
         emit Opened(_player, _startTime, idx);
     }
 
-    // Confirm/not confirm to play the market, performed by the player
+    /// Confirm to play the market opening, performed by the player
+    /// @param idx market identifier
+    /// @param stakedNGTs DSO staking of NGTs token
     function confirmOpening(uint idx, uint stakedNGTs) public {
 
         // check if the player is the sender
@@ -202,7 +294,7 @@ contract MarketsManager is Ownable, DateTime {
         // check if the market exists
         require(marketsFlag[idx] == true);
 
-        // check if the NGTs amount declared by dso to be staked by the player is correct
+        // check if the NGTs amount declared by dso that has to be staked by the player is correct
         require(marketsData[idx].playerStaking == stakedNGTs);
 
         // check if the market is waiting for the player starting confirm
@@ -223,21 +315,22 @@ contract MarketsManager is Ownable, DateTime {
         emit ConfirmedOpening(marketsData[idx].player, marketsData[idx].startTime, idx);
     }
 
-    // refund requested by the DSO (i.e. the player has not confirmed the market opening)
+    /// Refund requested by the DSO (i.e. the player has not confirmed the market opening)
+    /// @param idx market identifier
     function refund(uint idx) public {
-        // Only the DSO is allowed to request a refund
+        // only the DSO is allowed to request a refund
         require(msg.sender == dso);
 
         // check if the market exists
         require(marketsFlag[idx] == true);
 
-        // The market has to be in WaitingConfirmToStart state
+        // the market has to be in WaitingConfirmToStart state
         require(marketsData[idx].state == MarketState.WaitingConfirmToStart);
 
-        // Check if the market startTime is passed
+        // check if the market startTime is passed
         require(marketsData[idx].startTime < now);
 
-        // Refund the DSO staking
+        // refund the DSO staking
         ngt.transfer(dso, marketsData[idx].dsoStaking);
 
         // Set the market result
@@ -246,13 +339,12 @@ contract MarketsManager is Ownable, DateTime {
         // Set the market state
         marketsData[idx].state = MarketState.ClosedNotPlayed;
 
-        emit RefundedDSO(dso);
+        emit RefundedDSO(dso, idx);
     }
 
-    // *********************************************************
-    // Market solving functions:
-
-    // Send maximum measured power, requesting to end the market
+    /// Settle the market, performed by dso
+    /// @param idx market identifier
+    /// @param powerPeak maximum power consumed by the player during the market
     function settle(uint idx, uint powerPeak) public {
 
         // check if the dso is the sender
@@ -273,7 +365,9 @@ contract MarketsManager is Ownable, DateTime {
         emit Settled(marketsData[idx].player, marketsData[idx].startTime, idx, powerPeak);
     }
 
-    // Confirm the maximum power measured, performed by the player
+    /// Confirm the market settlement, performed by the player
+    /// @param idx market identifier
+    /// @param powerPeak maximum power consumed by the player during the market
     function confirmSettlement(uint idx, uint powerPeak) public {
 
         // check if the player is the sender
@@ -294,17 +388,19 @@ contract MarketsManager is Ownable, DateTime {
 
             // Finish the market sending the tokens to DSO and player according to the measured peak
             _decideMarket(idx);
+
+            emit SuccessfulSettlement();
         }
         else {
             // The referee decision is requested
             marketsData[idx].state = MarketState.WaitingForTheReferee;
 
-            emit RefereeRequested(marketsData[idx].player, marketsData[idx].startTime, idx,
-                                  marketsData[idx].powerPeakDeclaredByDso, marketsData[idx].powerPeakDeclaredByPlayer);
+            emit UnsuccessfulSettlement(marketsData[idx].powerPeakDeclaredByDso, marketsData[idx].powerPeakDeclaredByPlayer);
         }
     }
 
-    // The referees takes a decision to close the market
+    /// Decide the market final result
+    /// @param idx market identifier
     function _decideMarket(uint idx) private {
         uint peak = marketsData[idx].powerPeakDeclaredByDso;
         uint tokensForDso;
@@ -319,7 +415,7 @@ contract MarketsManager is Ownable, DateTime {
             // Set the market result as a player prize
             marketsData[idx].result = MarketResult.Prize;
 
-            emit Prize(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
+            emit Prize(tokensForDso, tokensForPlayer);
         }
         // lowerMax <= measured peak <= upperMax => REVENUE: the player takes a part of the DSO staking
         else if(peak > marketsData[idx].maxPowerLower && peak <= marketsData[idx].maxPowerUpper) {
@@ -335,7 +431,7 @@ contract MarketsManager is Ownable, DateTime {
             // Set the market result as a player revenue
             marketsData[idx].result = MarketResult.Revenue;
 
-            emit Revenue(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
+            emit Revenue(tokensForDso, tokensForPlayer);
         }
         // measured peak > upperMax => PENALTY/CRASH: the DSO takes a part of/all the revenue staking
         else {
@@ -352,7 +448,7 @@ contract MarketsManager is Ownable, DateTime {
                 // Set the market result as a player penalty
                 marketsData[idx].result = MarketResult.Crash;
 
-                emit Crash(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
+                emit Crash(tokensForDso, tokensForPlayer);
             }
             else {
                 tokensForPlayer = marketsData[idx].playerStaking.sub(tokensForDso);
@@ -361,13 +457,17 @@ contract MarketsManager is Ownable, DateTime {
                 // Set the market result as a player penalty
                 marketsData[idx].result = MarketResult.Penalty;
 
-                emit Penalty(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForDso, tokensForPlayer);
+                emit Penalty(tokensForDso, tokensForPlayer);
             }
         }
 
         _saveAndTransfer(idx, tokensForDso, tokensForPlayer);
     }
 
+    /// Save the final result and transfer the tokens
+    /// @param idx market identifier
+    /// @param _tokensForDso NGTSs to send to DSO
+    /// @param _tokensForPlayer NGTSs to send to player
     function _saveAndTransfer(uint idx, uint _tokensForDso, uint _tokensForPlayer) private {
         // save the amounts to send
         marketsData[idx].tknReleasedToDso = _tokensForDso;
@@ -385,10 +485,12 @@ contract MarketsManager is Ownable, DateTime {
 
         // Close the market
         marketsData[idx].state = MarketState.Closed;
-        emit Closed(marketsData[idx].player, marketsData[idx].startTime, idx, marketsData[idx].result);
+        emit Closed(marketsData[idx].result);
     }
 
-    // The referees takes a decision to close the market
+    /// Takes the final decision to close the market whene player and DSO do not agree about the settlement, performed by the referee
+    /// @param idx market identifier
+    /// @param _powerPeak maximum power consumed by the player during the market
     function performRefereeDecision(uint idx, uint _powerPeak) public {
 
         // the sender has to be the referee
@@ -406,6 +508,8 @@ contract MarketsManager is Ownable, DateTime {
         // Calculate the tokens amount for the honest actor
         uint tokensForHonest = tokensStaked.sub(tokensForReferee);
 
+        emit RefereeIntervention(marketsData[idx].player, marketsData[idx].startTime, idx);
+
         // Check if the DSO declared the truth (i.e. player cheated)
         if(marketsData[idx].powerPeakDeclaredByDso == _powerPeak)
         {
@@ -414,7 +518,7 @@ contract MarketsManager is Ownable, DateTime {
             // Send tokens to the honest DSO
             ngt.transfer(dso, tokensForHonest);
 
-            emit PlayerCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
+            emit PlayerCheated();
         }
         // Check if the player declared the truth (i.e. DSO cheated)
         else if(marketsData[idx].powerPeakDeclaredByPlayer == _powerPeak)
@@ -424,7 +528,7 @@ contract MarketsManager is Ownable, DateTime {
             // Send tokens to the honest player
             ngt.transfer(marketsData[idx].player, tokensForHonest);
 
-            emit DSOCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
+            emit DSOCheated();
         }
         // Both dso and player are cheating, the token are sent to address(0) :D
         else {
@@ -433,8 +537,8 @@ contract MarketsManager is Ownable, DateTime {
             // There are no honest, the related tokens are burnt
             ngt.burn(tokensForHonest);
 
-            emit DSOAndPlayerCheated(marketsData[idx].player, marketsData[idx].startTime, idx);
-            emit BurntTokens(marketsData[idx].player, marketsData[idx].startTime, idx, tokensForHonest);
+            emit DSOAndPlayerCheated();
+            emit BurntTokens(tokensForHonest);
         }
 
         // Send tokens to referee
@@ -442,10 +546,15 @@ contract MarketsManager is Ownable, DateTime {
 
         // Close the market
         marketsData[idx].state = MarketState.ClosedAfterJudgement;
-        emit ClosedAfterJudgement(marketsData[idx].player, marketsData[idx].startTime, idx, marketsData[idx].result);
+        emit ClosedAfterJudgement(marketsData[idx].result);
     }
 
-    // Check the revenue factor
+    /// Check the revenue factor
+    /// @param _maxLow lower limit of the maximum power consumed by player
+    /// @param _maxUp upper limit of the maximum power consumed by player
+    /// @param _revFactor revenue factor [NGT/kW]
+    /// @param _stakedNGTs DSO staking of NGTs token
+    /// @return TRUE if the the checking is passed, FALSE otherwise
     function _checkRevenueFactor(uint _maxUp, uint _maxLow, uint _revFactor, uint _stakedNGTs) pure private returns(bool) {
         uint calcNGTs = _maxUp.sub(_maxLow);
         calcNGTs = calcNGTs.mul(_revFactor);
@@ -454,33 +563,79 @@ contract MarketsManager is Ownable, DateTime {
         return calcNGTs == _stakedNGTs;
     }
 
-    // Check the startTime (it must be YYYY-MM-01 00:00:00)
+    /// Check the startTime
+    /// @param ts timestamp
+    /// @return TRUE (timestamp related to a YYYY-MM-01 00:00:00 date), FALSE otherwise
     function _checkStartTime(uint _ts) pure private returns(bool) {
         return (getDay(_ts) == 1) && (getHour(_ts) == 0) && (getMinute(_ts) == 0) && (getSecond(_ts) == 0);
     }
 
-    // Calculate the endTime timestamp (it must be YYYY-MM-LAST_DAY_OF_THE_MONTH 23:59:59)
+    /// Calculate the endTime timestamp (it will be YYYY-MM-LAST_DAY_OF_THE_MONTH 23:59:59)
+    /// @param ts starting market timestamp
+    /// @return ending startime
     function _calcEndTime(uint _ts) pure private returns(uint) {
         return toTimestamp(getYear(_ts), getMonth(_ts), getDaysInMonth(getMonth(_ts), getYear(_ts)), 23, 59, 59);
     }
 
-    // Calculate the idx of market hashing an address (the player) and a timestamp (the market starting time)
+    /// Calculate the idx of market hashing an address (the player) and a timestamp (the market starting time)
+    /// @param _addr address wallet
+    /// @param _ts timestamp
+    /// @return hash of the two inputs
     function calcIdx(address _addr, uint _ts) pure public returns(uint) {
         return uint(keccak256(abi.encodePacked(_addr, _ts)));
     }
 
     // Getters
+
+    /// @param idx market identifier
+    /// @return market state (0: None, 1: NotRunning, 2: WaitingConfirmToStart, 3: Running, 4: WaitingConfirmToEnd, 5: WaitingForTheReferee, 6: Closed, 7: ClosedAfterJudgement, 8: ClosedNotPlayed)
     function getState(uint _idx) view public returns(MarketState)       { return marketsData[_idx].state; }
+
+    /// @param idx market identifier
+    /// @return market final result (0: None, 1: NotDecided, 2: NotPlayed, 3: Prize, 4: Revenue, 5: Penalty, 6: Crash, 7: DSOCheating, 8: PlayerCheating, 9: Cheaters)
     function getResult(uint _idx) view public returns(MarketResult)     { return marketsData[_idx].result; }
+
+    /// @param idx market identifier
+    /// @return the player address
     function getPlayer(uint _idx) view public returns(address)          { return marketsData[_idx].player; }
+
+    /// @param idx market identifier
+    /// @return the referee address
     function getReferee(uint _idx) view public returns(address)         { return marketsData[_idx].referee; }
+
+    /// @param idx market identifier
+    /// @return the market starting timestamp
     function getStartTime(uint _idx) view public returns(uint)          { return marketsData[_idx].startTime; }
+
+    /// @param idx market identifier
+    /// @return the market ending timestamp
     function getEndTime(uint _idx) view public returns(uint)            { return marketsData[_idx].endTime; }
+
+    /// @param idx market identifier
+    /// @return the lower maximum limit
     function getLowerMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerLower; }
+
+    /// @param idx market identifier
+    /// @return the upper maximum limit
     function getUpperMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerUpper; }
+
+    /// @param idx market identifier
+    /// @return the revenue factor
     function getRevenueFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].revenueFactor; }
+
+    /// @param idx market identifier
+    /// @return the penalty factor
     function getPenaltyFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].penaltyFactor; }
+
+    /// @param idx market identifier
+    /// @return the DSO staked amount
     function getDsoStake(uint _idx) view public returns(uint)           { return marketsData[_idx].dsoStaking; }
+
+    /// @param idx market identifier
+    /// @return the player staked amount
     function getPlayerStake(uint _idx) view public returns(uint)        { return marketsData[_idx].playerStaking; }
+
+    /// @param idx market identifier
+    /// @return TRUE if the market exists, FALSE otherwise
     function getFlag(uint idx) view public returns(bool)                { return marketsFlag[idx];}
 }
