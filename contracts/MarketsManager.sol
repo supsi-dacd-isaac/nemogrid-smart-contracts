@@ -7,6 +7,8 @@ import "./DateTime.sol";
 import "./NGT.sol";
 
 contract MarketsManager is Ownable, DateTime {
+    // todo Separate contract for the market logic
+    // todo Daily market
 
     using SafeMath for uint;
 

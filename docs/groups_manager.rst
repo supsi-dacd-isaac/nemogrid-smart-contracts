@@ -1,4 +1,4 @@
-GroupsManager contract
+GroupsManager
 '''''''''''''''''''''''
 
 .. toctree::
