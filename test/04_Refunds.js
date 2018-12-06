@@ -1,3 +1,4 @@
+const time = require('../node_modules/openzeppelin-solidity/test/helpers/time');
 const shouldFail = require('../node_modules/openzeppelin-solidity/test/helpers/shouldFail');
 const advance = require('../node_modules/openzeppelin-solidity/test/helpers/advanceToBlock');
 const utils = require('./helpers/Utils');
@@ -35,16 +36,12 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
     });
 
-    describe('Unsuccessful refunds:', function() {
+    describe('Refunds:', function() {
         // Set markets startTime
         timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
         startTime = timestamps.first;
 
         it('A cheater, i.e. a wallet not allowed to be refunded, tries to perform a refund', async function() {
-            // Set markets startTime
-            timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-            startTime = timestamps.first;
-
             // Open correctly a market
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
@@ -59,9 +56,6 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         });
 
         it('Try to get a refund from an already confirmed market', async function() {
-            timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-            startTime = timestamps.first;
-
             // Open correctly a market
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
@@ -83,16 +77,33 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         });
 
         it('Try to get the refund too early, the player can still confirm', async function() {
-            timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-            startTime = timestamps.first;
-
             // Open correctly a market
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
-                                    constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
+                                           constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
             idx = await this.marketsManager.calcIdx(player, startTime);
 
             // Try to get the refund
             await shouldFail.reverting(this.marketsManager.refund(idx, {from: dso}));
+        });
+
+        it('Perform a successful refund', async function() {
+            // Open correctly a market
+            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+                                           constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
+            idx = await this.marketsManager.calcIdx(player, startTime);
+
+            // Set the test time after the declared market beginning
+            await time.increaseTo(startTime + 10*60);
+
+            // Perform the refund
+            await this.marketsManager.refund(idx, {from: dso});
+
+            // Check the DSO token balance
+            (await this.NGT.balanceOf(dso)).should.be.bignumber.equal(constants.DSO_TOKENS);
+
+            // Check market result and state
+            (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_NOT_PLAYED);
+            (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_CLOSED_NO_PLAYED);
         });
     });
 });

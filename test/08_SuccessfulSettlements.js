@@ -1,4 +1,3 @@
-const shouldFail = require('../node_modules/openzeppelin-solidity/test/helpers/shouldFail');
 const time = require('../node_modules/openzeppelin-solidity/test/helpers/time');
 const advance = require('../node_modules/openzeppelin-solidity/test/helpers/advanceToBlock');
 const utils = require('./helpers/Utils');
