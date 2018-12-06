@@ -1,5 +1,5 @@
-Markets management
-====================
+Creation and storage
+======================
 
 The high-level management of the energy markets is ruled by the smart contract :code:`GroupsManager`.
 

@@ -49,7 +49,7 @@ contract GroupsManager is Ownable{
     // View functions
 
     /// @param _dso The DSO wallet
-    /// @return TRUE if the group exists, false otherwise
+    /// @return TRUE if the group exists, FALSE otherwise
     function getFlag(address _dso) view public returns(bool)         { return groupsFlags[_dso]; }
 
     /// @param _dso The DSO wallet

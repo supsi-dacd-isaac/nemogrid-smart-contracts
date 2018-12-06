@@ -2,7 +2,7 @@ Nemogrid smart contracts documentation
 ========================================
 
 Markets management
-========================================
+=========================
 
 .. toctree::
     :maxdepth: 4
@@ -10,7 +10,7 @@ Markets management
     markets_management
 
 How the energy market works
-========================================
+==============================
 
 .. toctree::
     :maxdepth: 4

@@ -15,7 +15,14 @@ contract MarketsManager is Ownable, DateTime {
 
     // Enum definitions
 
-    /// State of the market
+    // Type of the market
+    enum MarketType {
+                        Monthly,
+                        Daily,
+                        Hourly
+                    }
+
+    // State of the market
     enum MarketState {
                         None,
                         NotRunning,             // Market not running
@@ -28,7 +35,7 @@ contract MarketsManager is Ownable, DateTime {
                         ClosedNotPlayed         // Market closed because not played by the player
                      }
 
-    /// Result of the market
+    // Result of the market
     enum MarketResult {
                         None,
                         NotDecided,         // The market is not ended
@@ -57,6 +64,9 @@ contract MarketsManager is Ownable, DateTime {
 
         // Ending time of the market (timestamp)
         uint endTime;
+
+        // Market type
+        MarketType marketType;
 
         // Lower maximum power threshold (W)
         uint maxPowerLower;
@@ -213,6 +223,7 @@ contract MarketsManager is Ownable, DateTime {
     /// Open a new market defined by the couple (player, startTime)
     /// @param _player player wallet
     /// @param _startTime initial timestamp of the market
+    /// @param _type market type (0: monthly, 1: daily, 2: hourly)
     /// @param _referee referee wallet
     /// @param _maxLow lower limit of the maximum power consumed by player
     /// @param _maxUp upper limit of the maximum power consumed by player
@@ -223,6 +234,7 @@ contract MarketsManager is Ownable, DateTime {
     /// @param _revPercReferee referee revenue percentage
     function open(address _player,
                   uint _startTime,
+                  MarketType _type,
                   address _referee,
                   uint _maxLow,
                   uint _maxUp,
@@ -243,7 +255,7 @@ contract MarketsManager is Ownable, DateTime {
 
         // check the startTime timestamp
         require(now < _startTime);
-        require(_checkStartTime(_startTime));
+        require(_checkStartTime(_startTime, _type));
 
         // check the referee address
         require(_referee != address(0));
@@ -261,7 +273,8 @@ contract MarketsManager is Ownable, DateTime {
 
         // The market can try to start: its data are saved in the mapping
         marketsData[idx].startTime = _startTime;
-        marketsData[idx].endTime = _calcEndTime(_startTime);
+        marketsData[idx].endTime = _calcEndTime(_startTime, _type);
+        marketsData[idx].marketType = _type;
         marketsData[idx].referee = _referee;
         marketsData[idx].player = _player;
         marketsData[idx].maxPowerLower = _maxLow;
@@ -564,17 +577,50 @@ contract MarketsManager is Ownable, DateTime {
     }
 
     /// Check the startTime
-    /// @param ts timestamp
-    /// @return TRUE (timestamp related to a YYYY-MM-01 00:00:00 date), FALSE otherwise
-    function _checkStartTime(uint _ts) pure private returns(bool) {
-        return (getDay(_ts) == 1) && (getHour(_ts) == 0) && (getMinute(_ts) == 0) && (getSecond(_ts) == 0);
+    /// @param _ts timestamp
+    /// @param _type market type (0: monthly, 1: daily, 2: hourly)
+    /// @return TRUE if timestamp is correct (i.e. YYYY-MM-01 00:00:00: monthly, YYYY-MM-DD 00:00:00: daily, YYYY-MM-DD HH:00:00: hourly), FALSE otherwise
+    function _checkStartTime(uint _ts, MarketType _type) pure private returns(bool) {
+
+        // Monthly market type
+        if(_type == MarketType.Monthly) {
+            return (getDay(_ts) == 1) && (getHour(_ts) == 0) && (getMinute(_ts) == 0) && (getSecond(_ts) == 0);
+        }
+        // Daily market type
+        else if(_type == MarketType.Daily) {
+            return (getHour(_ts) == 0) && (getMinute(_ts) == 0) && (getSecond(_ts) == 0);
+        }
+        // Hourly market type
+        else if(_type == MarketType.Hourly) {
+            return (getMinute(_ts) == 0) && (getSecond(_ts) == 0);
+        }
+        // Wrong market type
+        else {
+            return false;
+        }
     }
 
-    /// Calculate the endTime timestamp (it will be YYYY-MM-LAST_DAY_OF_THE_MONTH 23:59:59)
-    /// @param ts starting market timestamp
+    /// Calculate the endTime timestamp
+    /// @param _ts starting market timestamp
+    /// @param _type market type (0: monthly, 1: daily, 2: hourly)
     /// @return ending startime
-    function _calcEndTime(uint _ts) pure private returns(uint) {
-        return toTimestamp(getYear(_ts), getMonth(_ts), getDaysInMonth(getMonth(_ts), getYear(_ts)), 23, 59, 59);
+    function _calcEndTime(uint _ts, MarketType _type) pure private returns(uint) {
+        // Monthly market type
+        if(_type == MarketType.Monthly) {
+            return toTimestamp(getYear(_ts), getMonth(_ts), getDaysInMonth(getMonth(_ts), getYear(_ts)), 23, 59, 59);
+        }
+        // Daily market type
+        else if(_type == MarketType.Daily) {
+            return toTimestamp(getYear(_ts), getMonth(_ts), getDay(_ts), 23, 59, 59);
+        }
+        // Hourly market type
+        else if(_type == MarketType.Hourly) {
+            return toTimestamp(getYear(_ts), getMonth(_ts), getDay(_ts), getHour(_ts), 59, 59);
+        }
+        // Wrong market type
+        else {
+            return 0;
+        }
     }
 
     /// Calculate the idx of market hashing an address (the player) and a timestamp (the market starting time)
@@ -587,55 +633,55 @@ contract MarketsManager is Ownable, DateTime {
 
     // Getters
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return market state (0: None, 1: NotRunning, 2: WaitingConfirmToStart, 3: Running, 4: WaitingConfirmToEnd, 5: WaitingForTheReferee, 6: Closed, 7: ClosedAfterJudgement, 8: ClosedNotPlayed)
     function getState(uint _idx) view public returns(MarketState)       { return marketsData[_idx].state; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return market final result (0: None, 1: NotDecided, 2: NotPlayed, 3: Prize, 4: Revenue, 5: Penalty, 6: Crash, 7: DSOCheating, 8: PlayerCheating, 9: Cheaters)
     function getResult(uint _idx) view public returns(MarketResult)     { return marketsData[_idx].result; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the player address
     function getPlayer(uint _idx) view public returns(address)          { return marketsData[_idx].player; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the referee address
     function getReferee(uint _idx) view public returns(address)         { return marketsData[_idx].referee; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the market starting timestamp
     function getStartTime(uint _idx) view public returns(uint)          { return marketsData[_idx].startTime; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the market ending timestamp
     function getEndTime(uint _idx) view public returns(uint)            { return marketsData[_idx].endTime; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the lower maximum limit
     function getLowerMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerLower; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the upper maximum limit
     function getUpperMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerUpper; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the revenue factor
     function getRevenueFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].revenueFactor; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the penalty factor
     function getPenaltyFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].penaltyFactor; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the DSO staked amount
     function getDsoStake(uint _idx) view public returns(uint)           { return marketsData[_idx].dsoStaking; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return the player staked amount
     function getPlayerStake(uint _idx) view public returns(uint)        { return marketsData[_idx].playerStaking; }
 
-    /// @param idx market identifier
+    /// @param _idx market identifier
     /// @return TRUE if the market exists, FALSE otherwise
-    function getFlag(uint idx) view public returns(bool)                { return marketsFlag[idx];}
+    function getFlag(uint _idx) view public returns(bool)                { return marketsFlag[_idx];}
 }
