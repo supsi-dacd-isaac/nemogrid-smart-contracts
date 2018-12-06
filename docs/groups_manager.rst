@@ -7,4 +7,4 @@ GroupsManager
 
 .. autosolcontract:: GroupsManager
     :noindex:
-    :members: token, AddedGroup
+    :members: token, groups, AddedGroup, addGroup, getFlag, getAddress

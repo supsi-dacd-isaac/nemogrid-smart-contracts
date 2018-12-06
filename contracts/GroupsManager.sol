@@ -48,12 +48,10 @@ contract GroupsManager is Ownable{
 
     // View functions
 
-    /// Return if the markets group exists
     /// @param _dso The DSO wallet
-    /// @return true if the group exists, false otherwise
+    /// @return TRUE if the group exists, false otherwise
     function getFlag(address _dso) view public returns(bool)         { return groupsFlags[_dso]; }
 
-    /// Return if the markets group address
     /// @param _dso The DSO wallet
     /// @return the group address
     function getAddress(address _dso) view public returns(address)   { return address(groups[_dso]); }
