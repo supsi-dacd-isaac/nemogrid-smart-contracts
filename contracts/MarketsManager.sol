@@ -8,8 +8,6 @@ import "./NGT.sol";
 
 /// @title A manager to handle energy markets
 contract MarketsManager is Ownable, DateTime {
-    // todo Separate contract for the market logic
-
     using SafeMath for uint;
 
     // Enum definitions
