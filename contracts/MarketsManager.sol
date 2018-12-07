@@ -9,7 +9,6 @@ import "./NGT.sol";
 /// @title A manager to handle energy markets
 contract MarketsManager is Ownable, DateTime {
     // todo Separate contract for the market logic
-    // todo Daily market
 
     using SafeMath for uint;
 
