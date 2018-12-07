@@ -244,8 +244,8 @@ contract MarketsManager is Ownable, DateTime {
                   uint _playerNGTs,
                   uint _revPercReferee) public {
 
-        // create the idx hashing the player and the startTime
-        uint idx = calcIdx(_player, _startTime);
+        // create the idx hashing player, startTime and market type
+        uint idx = calcIdx(_player, _startTime, _type);
 
         // only the dso is allowed to open a market
         require(msg.sender == dso);
@@ -626,9 +626,10 @@ contract MarketsManager is Ownable, DateTime {
     /// Calculate the idx of market hashing an address (the player) and a timestamp (the market starting time)
     /// @param _addr address wallet
     /// @param _ts timestamp
+    /// @param _type market type (0: monthly, 1: daily, 2: hourly)
     /// @return hash of the two inputs
-    function calcIdx(address _addr, uint _ts) pure public returns(uint) {
-        return uint(keccak256(abi.encodePacked(_addr, _ts)));
+    function calcIdx(address _addr, uint _ts, MarketType _type) pure public returns(uint) {
+        return uint(keccak256(abi.encodePacked(_addr, _ts, _type)));
     }
 
     // Getters
