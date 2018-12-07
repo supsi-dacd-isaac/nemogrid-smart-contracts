@@ -1,10 +1,24 @@
 const moment = require('moment');
 
+// Markets types
+const MARKET_TYPE_MONTHLY = 0;
+const MARKET_TYPE_DAILY = 1;
+const MARKET_TYPE_HOURLY = 2;
+const MARKET_TYPE = MARKET_TYPE_DAILY;
+
+// Token amounts
+const DSO_TOKENS = 20000;
+const PLAYER_TOKENS = 20000;
+const REFEREE_TOKENS = 1000;
+const TOTAL_TOKENS = DSO_TOKENS + PLAYER_TOKENS + REFEREE_TOKENS;
+const ALLOWED_TOKENS = 10000;
+
 module.exports = {
     // Markets types
-    MONTHLY: 0,
-    DAILY: 1,
-    HOURLY: 2,
+    MARKET_TYPE_MONTHLY,
+    MARKET_TYPE_DAILY,
+    MARKET_TYPE_HOURLY,
+    MARKET_TYPE,
     
     // Markets result
     RESULT_NONE: 0,
@@ -30,11 +44,11 @@ module.exports = {
     STATE_CLOSED_NO_PLAYED: 8,
 
     // Token amounts
-    DSO_TOKENS: 20000,
-    PLAYER_TOKENS: 20000,
-    REFEREE_TOKENS: 1000,
-    TOTAL_TOKENS: 20000 + 20000 + 1000,
-    ALLOWED_TOKENS: 10000,
+    DSO_TOKENS,
+    PLAYER_TOKENS,
+    REFEREE_TOKENS,
+    TOTAL_TOKENS,
+    ALLOWED_TOKENS,
 
     // Market parameters used in the tests
 

@@ -44,36 +44,36 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         it('A cheater, i.e. a wallet not allowed to confirm, tries to perform a confirm opening', async function() {
 
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: cheater}));
         });
 
         it('Try to confirm a not-open market', async function() {
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player}));
         });
 
         it('Try to confirm with a wrong staking, i.e. the player is trying to cheat', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING-1, {from: player}));
         });
 
         it('Try to confirm an already confirmed market', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
             // Check the market state before the first confirm,  it has to be constants.STATE_WAITING_CONFIRM_TO_START
             (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_WAITING_CONFIRM_TO_START);
 
@@ -88,10 +88,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         });
 
         it('Try to stake too tokens', async function() {
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.ALLOWED_TOKENS+1, {from: player}));
         });
@@ -100,9 +100,9 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
 
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Set the test time after the declared market beginning
             await time.increaseTo(startTime + 10*60);

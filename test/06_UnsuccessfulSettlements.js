@@ -42,7 +42,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             // Open the market and not confirm it
             timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // The cheater tries to settle
             await shouldFail.reverting(this.marketsManager.settle(idx, constants.MAX_LOWER, {from: dso}));
@@ -53,9 +53,9 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
 
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Confirm the market
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
@@ -72,9 +72,9 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
 
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Confirm the market
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
@@ -92,9 +92,9 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
 
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Set the time a minute after the market end
             endTime = await this.marketsManager.getEndTime(idx);

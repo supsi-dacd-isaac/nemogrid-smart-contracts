@@ -43,23 +43,23 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
         it('A cheater, i.e. a wallet not allowed to be refunded, tries to perform a refund', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             await shouldFail.reverting(this.marketsManager.refund(idx, {from: cheater}));
         });
 
         it('Try to get a refund from a not-open market', async function() {
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
             await shouldFail.reverting(this.marketsManager.refund(idx, {from: dso}));
         });
 
         it('Try to get a refund from an already confirmed market', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Check the market state before the first confirm,  it has to be constants.STATE_WAITING_CONFIRM_TO_START
             (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_WAITING_CONFIRM_TO_START);
@@ -76,9 +76,9 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
         it('Try to get the refund too early, the player can still confirm', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Try to get the refund
             await shouldFail.reverting(this.marketsManager.refund(idx, {from: dso}));
@@ -86,9 +86,9 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
         it('Perform a successful refund', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MARKET_TYPE);
 
             // Set the test time after the declared market beginning
             await time.increaseTo(startTime + 10*60);

@@ -41,51 +41,51 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         startTime = timestamps.first;
 
         it('A cheater, i.e. a wallet not allowed to open a market, tries to perform an opening', async function() {
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: cheater}));
         });
 
         it('Try to open an already opened market', async function() {
             // Open correctly a market
-            await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
             // Try to open it again
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
         });
 
         it('Try to open a market with bad timestamps', async function() {
             // Start time in the past
-            await shouldFail.reverting(this.marketsManager.open(player, constants.WRONG_STARTTIME, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, constants.WRONG_STARTTIME, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
 
             // Start time not related to a date in format YYYY-MM-01 00:00:00
-            await shouldFail.reverting(this.marketsManager.open(player, startTime + 60, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime + 60, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
         });
 
         it('Try to set a not allowed referee', async function() {
             // The dso is also the referee
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, dso, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, dso, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
 
             // The player is also the referee
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, player, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, player, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
 
             // The referee is the address 0
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, 0, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, 0, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
         });
 
         it('Try to set wrong maximums', async function() {
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_UPPER, constants.MAX_LOWER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_UPPER, constants.MAX_LOWER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso}));
         });
 
         it('Try to stake too tokens', async function() {
-            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await shouldFail.reverting(this.marketsManager.open(player, startTime, constants.MARKET_TYPE, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                        constants.PEN_FACTOR, constants.ALLOWED_TOKENS+1, constants.PLAYER_TOKENS, constants.PERC_TKNS_REFEREE, {from: dso}));
         });
     });

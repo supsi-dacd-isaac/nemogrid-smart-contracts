@@ -10,7 +10,10 @@ const MarketsManager = artifacts.require('MarketsManager');
 const NGT = artifacts.require('NGT');
 
 // Main variables
-var startTime, endTime, timestamps, idx, marketType;
+var startTime, endTime, timestamps, idx;
+var monthlyMarket = constants.MARKET_TYPE_MONTHLY;
+var dailyMarket = constants.MARKET_TYPE_DAILY;
+var hourlyMarket = constants.MARKET_TYPE_HOURLY;
 
 // Markets contract
 contract('MarketsManager', function([owner, dso, player, referee]) {
@@ -36,18 +39,17 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
 
     describe('Successful opening of monthly markets:', function() {
 
-        timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-        startTime = timestamps.first;
-        endTime = timestamps.last;
-        marketType = constants.MONTHLY;
-
         it('Open a market with the correct parameters', async function() {
+            timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
+            startTime = timestamps.first;
+            endTime = timestamps.last;
+
             // Open the market
-            await this.marketsManager.open(player, startTime, marketType, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, monthlyMarket, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
             // Get the market idx from the smart contract
-            idx = await this.marketsManager.calcIdx(player, startTime, marketType);
+            idx = await this.marketsManager.calcIdx(player, startTime, monthlyMarket);
 
             // Check the existence mapping behaviour using the two identifier
             (await this.marketsManager.getFlag(idx)).should.be.equal(true);
@@ -78,10 +80,14 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
         });
 
         it('Confirm the market opening', async function() {
+            timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
+            startTime = timestamps.first;
+            endTime = timestamps.last;
+
             // Open the market
-            await this.marketsManager.open(player, startTime, marketType, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, monthlyMarket, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, marketType);
+            idx = await this.marketsManager.calcIdx(player, startTime, monthlyMarket);
 
             // Confirm the market
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
@@ -97,18 +103,17 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
 
     describe('Successful opening of daily markets:', function() {
 
-        timestamps = utils.getFirstLastTSNextDay(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-        startTime = timestamps.first;
-        endTime = timestamps.last;
-        marketType = constants.DAILY;
-
         it('Open a market with the correct parameters', async function() {
+            timestamps = utils.getFirstLastTSNextDay(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
+            startTime = timestamps.first;
+            endTime = timestamps.last;
+
             // Open the market
-            await this.marketsManager.open(player, startTime, marketType, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, dailyMarket, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
             // Get the market idx from the smart contract
-            idx = await this.marketsManager.calcIdx(player, startTime, marketType);
+            idx = await this.marketsManager.calcIdx(player, startTime, dailyMarket);
 
             // Check the existence mapping behaviour using the two identifier
             (await this.marketsManager.getFlag(idx)).should.be.equal(true);
@@ -139,10 +144,14 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
         });
 
         it('Confirm the market opening', async function() {
+            timestamps = utils.getFirstLastTSNextDay(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
+            startTime = timestamps.first;
+            endTime = timestamps.last;
+
             // Open the market
-            await this.marketsManager.open(player, startTime, marketType, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, dailyMarket, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, marketType);
+            idx = await this.marketsManager.calcIdx(player, startTime, dailyMarket);
 
             // Confirm the market
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
@@ -158,18 +167,17 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
 
     describe('Successful opening of hourly markets:', function() {
 
-        timestamps = utils.getFirstLastTSNextHour(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-        startTime = timestamps.first;
-        endTime = timestamps.last;
-        marketType = constants.HOURLY;
-
         it('Open a market with the correct parameters', async function() {
+            timestamps = utils.getFirstLastTSNextHour(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
+            startTime = timestamps.first;
+            endTime = timestamps.last;
+
             // Open the market
-            await this.marketsManager.open(player, startTime, marketType, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, hourlyMarket, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
             // Get the market idx from the smart contract
-            idx = await this.marketsManager.calcIdx(player, startTime, marketType);
+            idx = await this.marketsManager.calcIdx(player, startTime, hourlyMarket);
 
             // Check the existence mapping behaviour using the two identifier
             (await this.marketsManager.getFlag(idx)).should.be.equal(true);
@@ -201,9 +209,9 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
 
         it('Confirm the market opening', async function() {
             // Open the market
-            await this.marketsManager.open(player, startTime, marketType, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
+            await this.marketsManager.open(player, startTime, hourlyMarket, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime, marketType);
+            idx = await this.marketsManager.calcIdx(player, startTime, hourlyMarket);
 
             // Confirm the market
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
