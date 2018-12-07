@@ -12,7 +12,7 @@ const MarketsManager = artifacts.require('MarketsManager');
 const NGT = artifacts.require('NGT');
 
 // Main variables
-var startTime, timestamps, idx, data;
+var startTime, timestamps, idx;
 
 // Markets contract
 contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
@@ -32,8 +32,8 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         await this.NGT.mint(referee, constants.REFEREE_TOKENS);
 
         // Set tokens allowance
-        this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: dso});
-        this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
+        await this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: dso});
+        await this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
     });
 
     describe('Unsuccessful confirms of markets openings:', function() {
@@ -45,15 +45,15 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             // Open correctly a market
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
-                                    constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
+                                           constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: cheater}));
         });
 
         it('Try to confirm a not-open market', async function() {
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player}));
         });
@@ -63,7 +63,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING-1, {from: player}));
         });
@@ -73,17 +73,15 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime), data;
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
             // Check the market state before the first confirm,  it has to be constants.STATE_WAITING_CONFIRM_TO_START
-            data = await this.marketsManager.getState(idx);
-            data.should.be.bignumber.equal(constants.STATE_WAITING_CONFIRM_TO_START);
+            (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_WAITING_CONFIRM_TO_START);
 
             // Confirm correctly a market
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
 
             // Check the market state after the first confirm,  it has to be constants.STATE_RUNNING
-            data = await this.marketsManager.getState(idx);
-            data.should.be.bignumber.equal(constants.STATE_RUNNING);
+            (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_RUNNING);
 
             // Try to confirm again the market
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player}));
@@ -93,7 +91,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
 
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             await shouldFail.reverting(this.marketsManager.confirmOpening(idx, constants.ALLOWED_TOKENS+1, {from: player}));
         });
@@ -104,7 +102,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
 
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                            constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             // Set the test time after the declared market beginning
             await time.increaseTo(startTime + 10*60);

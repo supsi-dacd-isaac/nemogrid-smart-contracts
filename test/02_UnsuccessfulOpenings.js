@@ -31,8 +31,8 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         await this.NGT.mint(referee, constants.REFEREE_TOKENS);
 
         // Set tokens allowance
-        this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: dso});
-        this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
+        await this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: dso});
+        await this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
     });
 
     describe('Unsuccessful markets openings:', function() {

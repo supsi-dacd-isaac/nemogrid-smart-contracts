@@ -32,14 +32,11 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
         await this.NGT.mint(referee, constants.REFEREE_TOKENS);
 
         // Set tokens allowance
-        this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: dso});
-        this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
+        await this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: dso});
+        await this.NGT.increaseAllowance(this.marketsManager.address, constants.ALLOWED_TOKENS, {from: player});
     });
 
     describe('Unsuccessful referee decisions:', function() {
-        // Set markets startTime
-        timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
-        startTime = timestamps.first;
 
         it('A cheater, i.e. a wallet different from the referee, tries to judge', async function() {
             // run the market
@@ -47,7 +44,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
 
@@ -68,7 +65,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             startTime = timestamps.first;
             await this.marketsManager.open(player, startTime, constants.MONTHLY, referee, constants.MAX_LOWER, constants.MAX_UPPER, constants.REV_FACTOR,
                                     constants.PEN_FACTOR, constants.DSO_STAKING, constants.PLAYER_STAKING, constants.PERC_TKNS_REFEREE, {from: dso});
-            idx = await this.marketsManager.calcIdx(player, startTime);
+            idx = await this.marketsManager.calcIdx(player, startTime, constants.MONTHLY);
 
             await this.marketsManager.confirmOpening(idx, constants.PLAYER_STAKING, {from: player});
 
