@@ -1,6 +1,3 @@
-# secret folder
-secret
-
 # .idea folder
 .idea
 
@@ -19,5 +16,9 @@ _build
 # build contracts folder
 build
 
+# contracts_flattened folder
+contracts_flattened
 
+# deployments folder
+deployments
 
