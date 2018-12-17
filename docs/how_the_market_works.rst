@@ -128,3 +128,39 @@ It decides the token rewards as follows:
 
 where :code:`dsoPowerPeak`/:code:`playerPowerPeak`/:code:`refereePowerPeak` is the maximum power
 declared during the settlements operations by :code:`dso`/:code:`player`/:code:`referee`.
+
+Costs analysis
+==============
+
+Here are reported the costs of the main four transactions.
+
+.. list-table::
+   :widths: 25 25 25 25
+   :header-rows: 1
+
+   * - Transaction
+     - Gas
+     - Costs [GWei]
+     - Costs [USD]
+   * - OPEN
+     - 375974
+     - 1879870
+     - 0.17
+   * - OPENING_CONFIRM
+     - 59060
+     - 295300
+     - 0.03
+   * - SETTLE
+     - 53169
+     - 265845
+     - 0.02
+   * - SETTLEMENT_CONFIRM
+     - 128925
+     - 644625
+     - 0.06
+
+It is supposed to have: :code:`gas cost = 5 GWei` and :code:`1 ether = 90 USD`.
+Naturally, these values change continuously, so please refer to `ethgasstation.info`_ and `cryptowat.ch`_ to adjust the values.
+
+.. _ethgasstation.info: https://ethgasstation.info/
+.. _cryptowat.ch: https://cryptowat.ch/

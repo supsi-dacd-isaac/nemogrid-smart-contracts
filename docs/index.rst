@@ -28,8 +28,4 @@ Smart contracts
     markets_manager
 
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`search`
