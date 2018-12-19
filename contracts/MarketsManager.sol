@@ -268,6 +268,9 @@ contract MarketsManager is Ownable, DateTime {
         // check the dso tokens allowance
         require(_stakedNGTs <= ngt.allowance(dso, address(this)));
 
+        // DSO staking: allowed tokens are transferred from dso wallet to this smart contract
+        ngt.transferFrom(dso, address(this), _stakedNGTs);
+
         // The market can try to start: its data are saved in the mapping
         marketsData[idx].startTime = _startTime;
         marketsData[idx].endTime = _calcEndTime(_startTime, _type);
@@ -286,9 +289,6 @@ contract MarketsManager is Ownable, DateTime {
         marketsData[idx].state = MarketState.WaitingConfirmToStart;
         marketsData[idx].result = MarketResult.NotDecided;
         marketsFlag[idx] = true;
-
-        // DSO staking: allowed tokens are transferred from dso wallet to this smart contract
-        ngt.transferFrom(dso, address(this), marketsData[idx].dsoStaking);
 
         emit Opened(_player, _startTime, idx);
     }
