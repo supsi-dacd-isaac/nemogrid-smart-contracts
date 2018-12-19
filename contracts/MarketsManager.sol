@@ -108,16 +108,16 @@ contract MarketsManager is Ownable, DateTime {
     // Variables declaration
 
     /// Nemogrid token (NGT) used in the markets
-    NGT public ngt;
+    NGT private ngt;
 
     /// DSO related to the markets
-    address public dso;
+    address private dso;
 
     /// Mapping related to markets data
-    mapping (uint => MarketData) marketsData;
+    mapping (uint => MarketData) private marketsData;
 
     /// Mapping related to markets existence
-    mapping (uint => bool) marketsFlag;
+    mapping (uint => bool) private marketsFlag;
 
     // Events
 
@@ -528,6 +528,10 @@ contract MarketsManager is Ownable, DateTime {
             // Send tokens to the honest DSO
             ngt.transfer(dso, tokensForHonest);
 
+            // Set the mappings
+            marketsData[idx].tknReleasedToDso = tokensForHonest;
+            marketsData[idx].tknReleasedToPlayer = 0;
+
             emit PlayerCheated();
         }
         // Check if the player declared the truth (i.e. DSO cheated)
@@ -537,6 +541,10 @@ contract MarketsManager is Ownable, DateTime {
 
             // Send tokens to the honest player
             ngt.transfer(marketsData[idx].player, tokensForHonest);
+
+            // Set the mappings
+            marketsData[idx].tknReleasedToDso = 0;
+            marketsData[idx].tknReleasedToPlayer = tokensForHonest;
 
             emit DSOCheated();
         }
@@ -631,55 +639,115 @@ contract MarketsManager is Ownable, DateTime {
 
     // Getters
 
-    /// @param _idx market identifier
-    /// @return market state (0: None, 1: NotRunning, 2: WaitingConfirmToStart, 3: Running, 4: WaitingConfirmToEnd, 5: WaitingForTheReferee, 6: Closed, 7: ClosedAfterJudgement, 8: ClosedNotPlayed)
-    function getState(uint _idx) view public returns(MarketState)       { return marketsData[_idx].state; }
+    /// @return the DSO address
+    function getDSO() view public returns(address) {
+        return dso;
+    }
 
-    /// @param _idx market identifier
-    /// @return market final result (0: None, 1: NotDecided, 2: NotPlayed, 3: Prize, 4: Revenue, 5: Penalty, 6: Crash, 7: DSOCheating, 8: PlayerCheating, 9: Cheaters)
-    function getResult(uint _idx) view public returns(MarketResult)     { return marketsData[_idx].result; }
-
-    /// @param _idx market identifier
-    /// @return the player address
-    function getPlayer(uint _idx) view public returns(address)          { return marketsData[_idx].player; }
-
-    /// @param _idx market identifier
-    /// @return the referee address
-    function getReferee(uint _idx) view public returns(address)         { return marketsData[_idx].referee; }
+    /// @return the NGT address
+    function getNGT() view public returns(address) {
+        return address(ngt);
+    }
 
     /// @param _idx market identifier
     /// @return the market starting timestamp
-    function getStartTime(uint _idx) view public returns(uint)          { return marketsData[_idx].startTime; }
+    function getStartTime(uint _idx) view public returns(uint) {
+        return marketsData[_idx].startTime;
+    }
 
     /// @param _idx market identifier
     /// @return the market ending timestamp
-    function getEndTime(uint _idx) view public returns(uint)            { return marketsData[_idx].endTime; }
+    function getEndTime(uint _idx) view public returns(uint) {
+        return marketsData[_idx].endTime;
+    }
+
+    /// @param _idx market identifier
+    /// @return market type (0: Monthly, 1: Daily, 2: Hourly
+    function getType(uint _idx) view public returns(MarketType) {
+        return marketsData[_idx].marketType;
+    }
+
+    /// @param _idx market identifier
+    /// @return the player address
+    function getPlayer(uint _idx) view public returns(address) {
+        return marketsData[_idx].player;
+    }
+
+    /// @param _idx market identifier
+    /// @return the referee address
+    function getReferee(uint _idx) view public returns(address) {
+        return marketsData[_idx].referee;
+    }
 
     /// @param _idx market identifier
     /// @return the lower maximum limit
-    function getLowerMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerLower; }
+    function getLowerMaximum(uint _idx) view public returns(uint) {
+        return marketsData[_idx].maxPowerLower;
+    }
 
     /// @param _idx market identifier
     /// @return the upper maximum limit
-    function getUpperMaximum(uint _idx) view public returns(uint)       { return marketsData[_idx].maxPowerUpper; }
+    function getUpperMaximum(uint _idx) view public returns(uint) {
+        return marketsData[_idx].maxPowerUpper;
+    }
 
     /// @param _idx market identifier
     /// @return the revenue factor
-    function getRevenueFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].revenueFactor; }
+    function getRevenueFactor(uint _idx) view public returns(uint) {
+        return marketsData[_idx].revenueFactor;
+    }
 
     /// @param _idx market identifier
     /// @return the penalty factor
-    function getPenaltyFactor(uint _idx) view public returns(uint)      { return marketsData[_idx].penaltyFactor; }
+    function getPenaltyFactor(uint _idx) view public returns(uint) {
+        return marketsData[_idx].penaltyFactor;
+    }
+
+    /// @param _idx market identifier
+    /// @return revenue percentage for referee intervention
+    function getRevPercReferee(uint _idx) view public returns(uint) {
+        return marketsData[_idx].revPercReferee;
+    }
 
     /// @param _idx market identifier
     /// @return the DSO staked amount
-    function getDsoStake(uint _idx) view public returns(uint)           { return marketsData[_idx].dsoStaking; }
+    function getDsoStake(uint _idx) view public returns(uint) {
+        return marketsData[_idx].dsoStaking;
+    }
 
     /// @param _idx market identifier
     /// @return the player staked amount
-    function getPlayerStake(uint _idx) view public returns(uint)        { return marketsData[_idx].playerStaking; }
+    function getPlayerStake(uint _idx) view public returns(uint) {
+        return marketsData[_idx].playerStaking;
+    }
+
+    /// @param _idx market identifier
+    /// @return tokens amount released to DSO
+    function getTknsReleasedToDSO(uint _idx) view public returns(uint) {
+        return marketsData[_idx].tknReleasedToDso;
+    }
+
+    /// @param _idx market identifier
+    /// @return tokens amount released to player
+    function getTknsReleasedToPlayer(uint _idx) view public returns(uint) {
+        return marketsData[_idx].tknReleasedToPlayer;
+    }
+
+    /// @param _idx market identifier
+    /// @return market state (0: None, 1: NotRunning, 2: WaitingConfirmToStart, 3: Running, 4: WaitingConfirmToEnd, 5: WaitingForTheReferee, 6: Closed, 7: ClosedAfterJudgement, 8: ClosedNotPlayed)
+    function getState(uint _idx) view public returns(MarketState) {
+        return marketsData[_idx].state;
+    }
+
+    /// @param _idx market identifier
+    /// @return market final result (0: None, 1: NotDecided, 2: NotPlayed, 3: Prize, 4: Revenue, 5: Penalty, 6: Crash, 7: DSOCheating, 8: PlayerCheating, 9: Cheaters)
+    function getResult(uint _idx) view public returns(MarketResult) {
+        return marketsData[_idx].result;
+    }
 
     /// @param _idx market identifier
     /// @return TRUE if the market exists, FALSE otherwise
-    function getFlag(uint _idx) view public returns(bool)                { return marketsFlag[_idx];}
+    function getFlag(uint _idx) view public returns(bool) {
+        return marketsFlag[_idx];
+    }
 }

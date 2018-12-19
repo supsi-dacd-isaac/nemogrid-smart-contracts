@@ -62,7 +62,11 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
             (await this.NGT.balanceOf(this.marketsManager.address)).should.be.bignumber.equal(constants.DSO_STAKING);
             (await this.marketsManager.getDsoStake(idx)).should.be.bignumber.equal(constants.DSO_STAKING);
 
-            // Check player and refereee
+            // Check DSO and NGT
+            (await this.marketsManager.getDSO()).should.be.equal(dso);
+            (await this.marketsManager.getNGT()).should.be.equal(this.NGT.address);
+
+            // Check player and referee
             (await this.marketsManager.getPlayer(idx)).should.be.equal(player);
             (await this.marketsManager.getReferee(idx)).should.be.equal(referee);
 
@@ -77,6 +81,9 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
             // Check revenue/penalty factor
             (await this.marketsManager.getRevenueFactor(idx)).should.be.bignumber.equal(constants.REV_FACTOR);
             (await this.marketsManager.getPenaltyFactor(idx)).should.be.bignumber.equal(constants.PEN_FACTOR);
+
+            // Check revenue percentage for the referee
+            (await this.marketsManager.getRevPercReferee(idx)).should.be.bignumber.equal(constants.PERC_TKNS_REFEREE);
         });
 
         it('Confirm the market opening', async function() {
@@ -126,7 +133,11 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
             (await this.NGT.balanceOf(this.marketsManager.address)).should.be.bignumber.equal(constants.DSO_STAKING);
             (await this.marketsManager.getDsoStake(idx)).should.be.bignumber.equal(constants.DSO_STAKING);
 
-            // Check player and refereee
+            // Check DSO and NGT
+            (await this.marketsManager.getDSO()).should.be.equal(dso);
+            (await this.marketsManager.getNGT()).should.be.equal(this.NGT.address);
+
+            // Check player and referee
             (await this.marketsManager.getPlayer(idx)).should.be.equal(player);
             (await this.marketsManager.getReferee(idx)).should.be.equal(referee);
 
@@ -141,6 +152,9 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
             // Check revenue/penalty factor
             (await this.marketsManager.getRevenueFactor(idx)).should.be.bignumber.equal(constants.REV_FACTOR);
             (await this.marketsManager.getPenaltyFactor(idx)).should.be.bignumber.equal(constants.PEN_FACTOR);
+
+            // Check revenue percentage for the referee
+            (await this.marketsManager.getRevPercReferee(idx)).should.be.bignumber.equal(constants.PERC_TKNS_REFEREE);
         });
 
         it('Confirm the market opening', async function() {
@@ -190,7 +204,11 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
             (await this.NGT.balanceOf(this.marketsManager.address)).should.be.bignumber.equal(constants.DSO_STAKING);
             (await this.marketsManager.getDsoStake(idx)).should.be.bignumber.equal(constants.DSO_STAKING);
 
-            // Check player and refereee
+            // Check DSO and NGT
+            (await this.marketsManager.getDSO()).should.be.equal(dso);
+            (await this.marketsManager.getNGT()).should.be.equal(this.NGT.address);
+
+            // Check player and referee
             (await this.marketsManager.getPlayer(idx)).should.be.equal(player);
             (await this.marketsManager.getReferee(idx)).should.be.equal(referee);
 
@@ -205,6 +223,9 @@ contract('MarketsManager', function([owner, dso, player, referee]) {
             // Check revenue/penalty factor
             (await this.marketsManager.getRevenueFactor(idx)).should.be.bignumber.equal(constants.REV_FACTOR);
             (await this.marketsManager.getPenaltyFactor(idx)).should.be.bignumber.equal(constants.PEN_FACTOR);
+
+            // Check revenue percentage for the referee
+            (await this.marketsManager.getRevPercReferee(idx)).should.be.bignumber.equal(constants.PERC_TKNS_REFEREE);
         });
 
         it('Confirm the market opening', async function() {

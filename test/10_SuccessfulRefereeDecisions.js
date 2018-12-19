@@ -63,6 +63,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(constants.PLAYER_TOKENS - constants.PLAYER_STAKING + (constants.DSO_STAKING + constants.PLAYER_STAKING)*(1-constants.PERC_TKNS_REFEREE/1e2));
             (await this.NGT.balanceOf(referee)).should.be.bignumber.equal(constants.REFEREE_TOKENS + (constants.DSO_STAKING + constants.PLAYER_STAKING)*constants.PERC_TKNS_REFEREE/1e2);
 
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal(0);
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal((constants.DSO_STAKING+constants.PLAYER_STAKING) * (1 - constants.PERC_TKNS_REFEREE/1e2));
+
             // Check market result and state
             (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_DSO_CHEATING);
             (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_CLOSED_AFTER_JUDGEMENT);
@@ -94,6 +98,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(constants.PLAYER_TOKENS - constants.PLAYER_STAKING);
             (await this.NGT.balanceOf(referee)).should.be.bignumber.equal(constants.REFEREE_TOKENS + (constants.DSO_STAKING + constants.PLAYER_STAKING)*constants.PERC_TKNS_REFEREE/1e2);
 
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal((constants.DSO_STAKING+constants.PLAYER_STAKING) * (1 - constants.PERC_TKNS_REFEREE/1e2));
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal(0);
+
             // Check market result and state
             (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_PLAYER_CHEATING);
             (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_CLOSED_AFTER_JUDGEMENT);
@@ -124,6 +132,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(dso)).should.be.bignumber.equal(constants.DSO_TOKENS - constants.DSO_STAKING);
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(constants.PLAYER_TOKENS - constants.PLAYER_STAKING);
             (await this.NGT.balanceOf(referee)).should.be.bignumber.equal(constants.REFEREE_TOKENS + (constants.DSO_STAKING + constants.PLAYER_STAKING)*constants.PERC_TKNS_REFEREE/1e2);
+
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal(0);
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal(0);
 
             // Check the tokens urning
             (await this.NGT.totalSupply()).should.be.bignumber.equal(constants.TOTAL_TOKENS - (constants.DSO_STAKING + constants.PLAYER_STAKING)*(1-constants.PERC_TKNS_REFEREE/1e2));

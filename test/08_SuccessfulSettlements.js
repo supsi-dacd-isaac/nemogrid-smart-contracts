@@ -36,7 +36,7 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
     });
 
     describe('Successful settlements:', function() {
-        it('PowerPeak <= LowerMaximum: The player takes all the DSO tokens', async function() {
+        it('PowerPeak <= LowerMaximum: The player takes all the DSO tokens (prize)', async function() {
             // Set markets startTime
             timestamps = utils.getFirstLastTSNextMonth(parseInt(web3.eth.getBlock(web3.eth.blockNumber).timestamp)*1000);
             startTime = timestamps.first;
@@ -64,6 +64,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(this.marketsManager.address)).should.be.bignumber.equal(0);
             (await this.NGT.balanceOf(dso)).should.be.bignumber.equal(constants.DSO_TOKENS-constants.DSO_STAKING);
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(constants.PLAYER_TOKENS+constants.DSO_STAKING);
+
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal(0);
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal(constants.DSO_STAKING+constants.PLAYER_STAKING);
 
             // Check market result and state
             (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_PRIZE);
@@ -101,6 +105,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(dso)).should.be.bignumber.equal(calcDsoTkns);
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(calcPlayerTkns);
 
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal(calcDsoTkns - (constants.DSO_TOKENS - constants.DSO_STAKING));
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal(calcPlayerTkns - (constants.PLAYER_TOKENS - constants.PLAYER_STAKING));
+
             // Check market result and state
             (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_REVENUE);
             (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_CLOSED);
@@ -137,6 +145,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(dso)).should.be.bignumber.equal(calcDsoTkns);
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(calcPlayerTkns);
 
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal(calcDsoTkns - (constants.DSO_TOKENS - constants.DSO_STAKING));
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal(calcPlayerTkns - (constants.PLAYER_TOKENS - constants.PLAYER_STAKING));
+
             // Check market result and state
             (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_PENALTY);
             (await this.marketsManager.getState(idx)).should.be.bignumber.equal(constants.STATE_CLOSED);
@@ -169,6 +181,10 @@ contract('MarketsManager', function([owner, dso, player, referee, cheater]) {
             (await this.NGT.balanceOf(this.marketsManager.address)).should.be.bignumber.equal(0);
             (await this.NGT.balanceOf(dso)).should.be.bignumber.equal(constants.DSO_TOKENS + constants.PLAYER_STAKING);
             (await this.NGT.balanceOf(player)).should.be.bignumber.equal(constants.PLAYER_TOKENS - constants.PLAYER_STAKING);
+
+            // Check the tokens transferrings
+            (await this.marketsManager.getTknsReleasedToDSO(idx)).should.be.bignumber.equal(constants.DSO_STAKING + constants.PLAYER_STAKING);
+            (await this.marketsManager.getTknsReleasedToPlayer(idx)).should.be.bignumber.equal(0);
 
             // Check market result and state
             (await this.marketsManager.getResult(idx)).should.be.bignumber.equal(constants.RESULT_CRASH);
