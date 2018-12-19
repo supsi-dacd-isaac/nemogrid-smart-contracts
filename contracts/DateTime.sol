@@ -21,7 +21,7 @@ contract DateTime {
 
     uint constant ORIGIN_YEAR = 1970;
 
-    function isLeapYear(uint year) public pure returns (bool) {
+    function isLeapYear(uint year) internal pure returns (bool) {
         if (year % 4 != 0) {
                 return false;
         }
@@ -34,12 +34,12 @@ contract DateTime {
         return true;
     }
 
-    function leapYearsBefore(uint year) public pure returns (uint) {
+    function leapYearsBefore(uint year) internal pure returns (uint) {
         year -= 1;
         return year / 4 - year / 100 + year / 400;
     }
 
-    function getDaysInMonth(uint month, uint year) public pure returns (uint) {
+    function getDaysInMonth(uint month, uint year) internal pure returns (uint) {
         if (month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12) {
                 return 31;
         }
@@ -99,7 +99,7 @@ contract DateTime {
         dt.weekday = getWeekday(timestamp);
     }
 
-    function getYear(uint timestamp) public pure returns (uint) {
+    function getYear(uint timestamp) internal pure returns (uint) {
         uint secondsAccountedFor = 0;
         uint year;
         uint numLeapYears;
@@ -123,43 +123,43 @@ contract DateTime {
         return year;
     }
 
-    function getMonth(uint timestamp) public pure returns (uint) {
+    function getMonth(uint timestamp) internal pure returns (uint) {
         return parseTimestamp(timestamp).month;
     }
 
-    function getDay(uint timestamp) public pure returns (uint) {
+    function getDay(uint timestamp) internal pure returns (uint) {
         return parseTimestamp(timestamp).day;
     }
 
-    function getHour(uint timestamp) public pure returns (uint) {
+    function getHour(uint timestamp) internal pure returns (uint) {
         return uint((timestamp / 60 / 60) % 24);
     }
 
-    function getMinute(uint timestamp) public pure returns (uint) {
+    function getMinute(uint timestamp) internal pure returns (uint) {
         return uint((timestamp / 60) % 60);
     }
 
-    function getSecond(uint timestamp) public pure returns (uint) {
+    function getSecond(uint timestamp) internal pure returns (uint) {
         return uint(timestamp % 60);
     }
 
-    function getWeekday(uint timestamp) public pure returns (uint) {
+    function getWeekday(uint timestamp) internal pure returns (uint) {
         return uint((timestamp / DAY_IN_SECONDS + 4) % 7);
     }
 
-    function toTimestamp(uint year, uint month, uint day) public pure returns (uint timestamp) {
+    function toTimestamp(uint year, uint month, uint day) internal pure returns (uint timestamp) {
         return toTimestamp(year, month, day, 0, 0, 0);
     }
 
-    function toTimestamp(uint year, uint month, uint day, uint hour) public pure returns (uint timestamp) {
+    function toTimestamp(uint year, uint month, uint day, uint hour) internal pure returns (uint timestamp) {
         return toTimestamp(year, month, day, hour, 0, 0);
     }
 
-    function toTimestamp(uint year, uint month, uint day, uint hour, uint minute) public pure returns (uint timestamp) {
+    function toTimestamp(uint year, uint month, uint day, uint hour, uint minute) internal pure returns (uint timestamp) {
         return toTimestamp(year, month, day, hour, minute, 0);
     }
 
-    function toTimestamp(uint year, uint month, uint day, uint hour, uint minute, uint second) public pure returns (uint timestamp) {
+    function toTimestamp(uint year, uint month, uint day, uint hour, uint minute, uint second) internal pure returns (uint timestamp) {
         uint i;
 
         // Year
